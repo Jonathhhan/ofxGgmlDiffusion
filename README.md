@@ -79,6 +79,21 @@ identity adapter. The typed request surface and validation are ready first; the
 actual PhotoMaker call should be wired after confirming the installed
 stable-diffusion.cpp header.
 
+## Diffusers Reference
+
+Hugging Face Diffusers is a useful design reference for this addon, but not a
+runtime dependency. Borrow the shape: pipelines compose schedulers, model
+families, adapters, and media helpers. Keep the implementation local C++ around
+generated stable-diffusion.cpp binaries and explicit user-provided assets.
+
+Good ideas to mirror carefully:
+
+- pipeline names should describe workflows, not upstream implementation details
+- schedulers should stay explicit request/config choices
+- adapters such as LoRA, ControlNet, and PhotoMaker should be typed request
+  data
+- examples should show one complete workflow without becoming a model zoo
+
 ## Example
 
 `ofxGgmlDiffusionPromptExample` is a root-level text-to-image example. Generate

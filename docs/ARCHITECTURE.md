@@ -54,3 +54,14 @@ shape generic enough for future identity workflows, but do not split
 `ofxGgmlPhotoMaker` unless several non-diffusion consumers need the same layer.
 The first milestone is typed request validation; native stable-diffusion.cpp
 wiring should follow only after the installed header is verified locally.
+
+## Diffusers Reference
+
+Diffusers is a reference for API organization, not a dependency. Use its broad
+separation of pipelines, schedulers, model-family building blocks, and adapters
+to keep this addon understandable. Translate those ideas into small C++ types
+that work with local files and generated native runtimes.
+
+The addon should avoid becoming a one-to-one port of Python Diffusers. When a
+workflow is added, first name the local openFrameworks use case, then choose
+the smallest request/config shape that can express it.
