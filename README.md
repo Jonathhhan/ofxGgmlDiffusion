@@ -60,8 +60,7 @@ an in-flight sampling step.
 ## Example
 
 `ofxGgmlDiffusionPromptExample` is a root-level text-to-image example. Generate
-it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and
-`ofxGgmlCore`, set `OFXGGML_DIFFUSION_MODEL` or place a model at
+it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion`, `ofxGgmlCore`, and `ofxImGui`, set `OFXGGML_DIFFUSION_MODEL` or place a model at
 `bin/data/models/model.safetensors`, then press `R` to run one generation.
 The example runs generation on a worker thread; press `C` to cancel the pending
 result.
@@ -75,6 +74,7 @@ scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
 
 - openFrameworks
 - `ofxGgmlCore`
+- `ofxImGui` for examples
 
 ## Validate
 
