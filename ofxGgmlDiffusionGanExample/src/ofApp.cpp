@@ -1,24 +1,26 @@
 #include "ofApp.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <vector>
 
 void ofApp::setup() {
 	ofSetWindowTitle("ofxGgmlDiffusion GAN example");
 	prompt = "small monochrome icon set for an openFrameworks tool";
-	backend = ofxGgmlMakeUnavailableDiffusionImageGenerationBackend(
-		ofxGgmlDiffusionBackendFamily::GAN,
-		"gan");
+	backend = std::make_unique<ofxGgmlDiffusionTinyGanBackend>();
 	rebuildRequest();
 
 	status = ofxGgmlDiffusionUtils::describe(request);
-	if (request.gan.generatorPath.empty()) {
-		detail = "Set OFXGGML_GAN_GENERATOR or place a generator at bin/data/models/generator.gguf";
+	if (backend->isAvailable()) {
+		detail = "Press R to run the built-in tiny ggml generator proof";
 	} else {
-		detail = "Press R to run the GAN request";
+		detail = "Run ofxGgmlCore scripts\\setup-ggml.bat, then rebuild this example";
 	}
 	ofLogNotice("ofxGgmlDiffusionGanExample") << status;
 	ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
+}
+
+void ofApp::update() {
 }
 
 void ofApp::keyPressed(int key) {
@@ -47,17 +49,7 @@ void ofApp::runGeneration() {
 		return;
 	}
 
-	auto result = backend->generate(request);
-	if (!result) {
-		status = "generation failed";
-		detail = result.error;
-		ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
-		return;
-	}
-
-	status = "complete";
-	detail = result.outputPath.empty() ? "GAN generation completed" : "Saved " + result.outputPath;
-	ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
+	applyResult(backend->generate(request));
 }
 
 void ofApp::rebuildRequest() {
@@ -68,6 +60,32 @@ void ofApp::rebuildRequest() {
 	request.seed = 1234;
 	request.gan.latentSize = 512;
 	request.gan.truncation = 0.85f;
+}
+
+void ofApp::applyResult(ofxGgmlDiffusionResult result) {
+	if (!result) {
+		status = "generation failed";
+		detail = result.error;
+		ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
+		return;
+	}
+
+	if (!ofxGgmlDiffusionImageUtils::saveFirstImage(result, request.outputPath)) {
+		status = "save failed";
+		detail = result.error;
+		ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
+		return;
+	}
+
+	ofPixels pixels;
+	if (!result.images.empty() &&
+		ofxGgmlDiffusionImageUtils::toPixels(result.images.front(), pixels)) {
+		texture.loadData(pixels);
+	}
+
+	status = "complete";
+	detail = "Saved " + result.outputPath;
+	ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
 }
 
 std::string ofApp::findGeneratorPath() const {
@@ -87,7 +105,7 @@ std::string ofApp::findGeneratorPath() const {
 			return candidate;
 		}
 	}
-	return "";
+	return "builtin:tiny-mlp";
 }
 
 std::string ofApp::getOutputPath() const {
@@ -105,5 +123,10 @@ void ofApp::draw() {
 	ofDrawBitmapString("generator: " + (request.gan.generatorPath.empty() ? "(unset)" : request.gan.generatorPath), 32, 138);
 	ofDrawBitmapString("status: " + status, 32, 168);
 	ofDrawBitmapString(detail, 32, 198);
-	ofDrawBitmapString("R run request", 32, 228);
+	ofDrawBitmapString("R run tiny GAN", 32, 228);
+	if (texture.isAllocated()) {
+		const float maxSize = 256.0f;
+		const float scale = std::min(maxSize / texture.getWidth(), maxSize / texture.getHeight());
+		texture.draw(32, 264, texture.getWidth() * scale, texture.getHeight() * scale);
+	}
 }

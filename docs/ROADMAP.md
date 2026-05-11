@@ -30,6 +30,8 @@
   settings, and unavailable fallback backend.
 - Add `ofxGgmlDiffusionGanExample` as a root-level GAN request smoke example
   with dry-run launch script coverage.
+- Add `ofxGgmlDiffusionTinyGanBackend`, a fixed tiny ggml MLP generator proof
+  that produces image pixels when Core's ggml runtime is installed.
 
 ## Next Milestones
 
@@ -37,8 +39,10 @@
   the installed C API fields.
 - Connect the existing stable-diffusion.cpp bridge to the shared image backend
   interface.
-- Prototype a GAN inference backend only after choosing a small exported
-  generator format and fixture model.
+- Choose a small exported generator format and fixture model for the first
+  non-builtin GAN inference backend.
+- After inference is boring, try a toy discriminator/training loop as an
+  explicitly experimental path.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp

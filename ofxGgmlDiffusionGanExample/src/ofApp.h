@@ -9,6 +9,7 @@
 class ofApp : public ofBaseApp {
 public:
 	void setup() override;
+	void update() override;
 	void keyPressed(int key) override;
 	void draw() override;
 
@@ -17,10 +18,12 @@ private:
 	std::string findGeneratorPath() const;
 	std::string getOutputPath() const;
 	void rebuildRequest();
+	void applyResult(ofxGgmlDiffusionResult result);
 
 	ofxGgmlDiffusionContextSettings settings;
 	ofxGgmlDiffusionRequest request;
 	std::unique_ptr<ofxGgmlDiffusionImageGenerationBackend> backend;
+	ofTexture texture;
 	std::string prompt;
 	std::string status;
 	std::string detail;

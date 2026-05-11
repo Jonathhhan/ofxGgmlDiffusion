@@ -1,6 +1,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
 #include <iostream>
@@ -131,6 +132,37 @@ int main() {
 		ganResult.outputPath != ganRequest.outputPath ||
 		ganResult.references.empty()) {
 		std::cerr << "unavailable GAN generation result was unexpected\n";
+		return 1;
+	}
+
+	ofxGgmlDiffusionTinyGanBackend tinyGan;
+	if (tinyGan.getBackendName() != "tiny-ggml-gan" ||
+		tinyGan.getBackendFamily() != ofxGgmlDiffusionBackendFamily::GAN ||
+		tinyGan.isLoaded()) {
+		std::cerr << "tiny GAN backend reported unexpected initial state\n";
+		return 1;
+	}
+	const auto tinySetup = tinyGan.setup(ofxGgmlDiffusionContextSettings{});
+	if (tinyGan.isAvailable()) {
+		if (!tinySetup || !tinyGan.isLoaded()) {
+			std::cerr << "available tiny GAN backend did not set up\n";
+			return 1;
+		}
+		auto tinyRequest = ganRequest;
+		tinyRequest.width = 64;
+		tinyRequest.height = 64;
+		tinyRequest.gan.generatorPath = "builtin:tiny-mlp";
+		const auto tinyResult = tinyGan.generate(tinyRequest);
+		if (!tinyResult ||
+			tinyResult.images.empty() ||
+			!tinyResult.images.front().isAllocated() ||
+			tinyResult.images.front().width != 64 ||
+			tinyResult.images.front().height != 64) {
+			std::cerr << "available tiny GAN backend did not generate pixels\n";
+			return 1;
+		}
+	} else if (tinySetup.isOk() || tinyGan.isLoaded()) {
+		std::cerr << "unavailable tiny GAN backend unexpectedly set up\n";
 		return 1;
 	}
 

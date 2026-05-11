@@ -81,3 +81,9 @@ context/request types, and return the existing image result type. GAN-specific
 request data lives in `ofxGgmlDiffusionGanSettings`; a real backend can later
 decide whether the generator path points at GGUF, a custom ggml graph bundle, or
 an external bridge contract.
+
+`ofxGgmlDiffusionTinyGanBackend` is the first proof backend. It builds a fixed
+MLP generator with ggml tensors and returns RGB pixels through the same result
+type as diffusion. It intentionally does not load PyTorch weights or train a
+discriminator; those are later milestones after a small exported generator
+format is chosen.

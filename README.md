@@ -111,11 +111,14 @@ The public API now has the first boring boundary for that work:
 - `makeGanImageRequest()` creates a validated text-to-image GAN request
 - `ofxGgmlDiffusionImageGenerationBackend` is the shared backend interface for
   future diffusion, GAN, or external image runtimes
+- `ofxGgmlDiffusionTinyGanBackend` is the first real ggml proof: a fixed tiny
+  MLP generator that runs when Core's ggml headers/libs are installed
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 
-The stable path should start with inference from a known local generator graph or
-an external bridge. Full in-addon adversarial training should remain
+The tiny backend is deterministic and not trained; it proves the graph and pixel
+path, not model quality. The stable path should continue with inference from a
+known local generator graph or an external bridge. Full in-addon adversarial training should remain
 experimental until ggml training/autograd support is proven locally with focused
 tests.
 
