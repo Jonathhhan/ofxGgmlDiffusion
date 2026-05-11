@@ -126,6 +126,8 @@ The public API now has the first boring boundary for that work:
   fixture images for scanner tests and future toy training experiments
 - `ofxGgmlDiffusionLoadTinyGanPpmImage()` loads those fixture images and creates
   normalized float pixels in `[-1, 1]` for the future discriminator path
+- `ofxGgmlDiffusionRunTinyGanDiscriminatorForward()` is a deterministic tiny
+  classifier preview over normalized fixture pixels; it is not trained yet
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 

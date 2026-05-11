@@ -234,6 +234,25 @@ int main() {
 		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
+	const auto discriminator = ofxGgmlDiffusionRunTinyGanDiscriminatorForward(sample, 40);
+	const auto discriminatorAgain = ofxGgmlDiffusionRunTinyGanDiscriminatorForward(sample, 40);
+	if (!discriminator ||
+		!discriminatorAgain ||
+		discriminator.hiddenSize != 40 ||
+		discriminator.probability <= 0.0f ||
+		discriminator.probability >= 1.0f ||
+		std::fabs(discriminator.probability - discriminatorAgain.probability) > 0.000001f ||
+		std::fabs(discriminator.logit - discriminatorAgain.logit) > 0.000001f) {
+		std::cerr << "tiny GAN discriminator forward failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	const auto invalidDiscriminator = ofxGgmlDiffusionRunTinyGanDiscriminatorForward(sample, 4);
+	if (invalidDiscriminator.isOk() || invalidDiscriminator.error.empty()) {
+		std::cerr << "invalid tiny GAN discriminator forward unexpectedly passed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
 	const auto missingDatasetScan = ofxGgmlDiffusionScanTinyGanDataset("tiny-gan-missing-dataset-test");
 	if (missingDatasetScan.exists || missingDatasetScan.warnings.empty()) {
 		std::cerr << "missing tiny GAN dataset scan failed\n";

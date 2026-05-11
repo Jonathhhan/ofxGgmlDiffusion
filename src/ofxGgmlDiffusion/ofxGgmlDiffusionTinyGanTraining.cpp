@@ -87,6 +87,20 @@ namespace {
 			return false;
 		}
 	}
+
+	float sigmoid(float value) {
+		if (value >= 0.0f) {
+			const float z = std::exp(-value);
+			return 1.0f / (1.0f + z);
+		}
+		const float z = std::exp(value);
+		return z / (1.0f + z);
+	}
+
+	float fixedTinyDiscriminatorWeight(std::size_t inputIndex, int hiddenIndex) {
+		const int bucket = static_cast<int>(((inputIndex + 1) * static_cast<std::size_t>(hiddenIndex + 3)) % 23);
+		return static_cast<float>(bucket - 11) / 96.0f;
+	}
 }
 
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionValidateTinyGanTraining(
@@ -237,6 +251,47 @@ bool ofxGgmlDiffusionWriteTinyGanFixtureDataset(
 	}
 
 	return true;
+}
+
+ofxGgmlDiffusionTinyGanDiscriminatorResult ofxGgmlDiffusionRunTinyGanDiscriminatorForward(
+	const ofxGgmlDiffusionTinyGanImageSample& sample,
+	int hiddenSize) {
+	ofxGgmlDiffusionTinyGanDiscriminatorResult result;
+	result.hiddenSize = hiddenSize;
+	if (!sample.isAllocated()) {
+		result.error = "sample is not allocated";
+		return result;
+	}
+	if (sample.normalizedPixels.size() != sample.pixels.size()) {
+		result.error = "sample normalized pixel count does not match byte pixel count";
+		return result;
+	}
+	if (sample.width != 64 || sample.height != 64 || sample.channels != 3) {
+		result.error = "tiny discriminator currently supports 64x64 RGB samples only";
+		return result;
+	}
+	if (hiddenSize < 8 || hiddenSize > 512) {
+		result.error = "hiddenSize must be between 8 and 512";
+		return result;
+	}
+
+	float logit = -0.04f;
+	const auto& pixels = sample.normalizedPixels;
+	for (int hidden = 0; hidden < hiddenSize; ++hidden) {
+		float activation = static_cast<float>((hidden % 7) - 3) * 0.015f;
+		const std::size_t stride = static_cast<std::size_t>((hidden % 5) + 3);
+		for (std::size_t i = static_cast<std::size_t>(hidden % 3); i < pixels.size(); i += stride) {
+			activation += pixels[i] * fixedTinyDiscriminatorWeight(i, hidden);
+		}
+		activation = std::tanh(activation / static_cast<float>(pixels.size() / stride));
+		const float outputWeight = static_cast<float>((hidden * 13) % 19 - 9) / static_cast<float>(hiddenSize);
+		logit += activation * outputWeight;
+	}
+
+	result.success = true;
+	result.logit = logit;
+	result.probability = sigmoid(logit);
+	return result;
 }
 
 std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(

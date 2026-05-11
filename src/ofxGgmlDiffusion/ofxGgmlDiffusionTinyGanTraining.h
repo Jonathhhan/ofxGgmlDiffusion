@@ -48,6 +48,26 @@ struct ofxGgmlDiffusionTinyGanImageSample {
 	}
 };
 
+struct ofxGgmlDiffusionTinyGanDiscriminatorResult {
+	bool success = false;
+	std::string error;
+	float logit = 0.0f;
+	float probability = 0.0f;
+	int hiddenSize = 0;
+
+	bool isOk() const {
+		return success;
+	}
+
+	bool isError() const {
+		return !success;
+	}
+
+	explicit operator bool() const {
+		return success;
+	}
+};
+
 struct ofxGgmlDiffusionTinyGanTrainingResult {
 	bool success = false;
 	std::string text;
@@ -92,6 +112,9 @@ bool ofxGgmlDiffusionLoadTinyGanPpmImage(
 	std::string& error);
 std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(
 	const ofxGgmlDiffusionTinyGanImageSample& sample);
+ofxGgmlDiffusionTinyGanDiscriminatorResult ofxGgmlDiffusionRunTinyGanDiscriminatorForward(
+	const ofxGgmlDiffusionTinyGanImageSample& sample,
+	int hiddenSize);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(
