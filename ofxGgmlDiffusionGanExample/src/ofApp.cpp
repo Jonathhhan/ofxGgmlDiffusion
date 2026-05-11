@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 #include <sstream>
 
 namespace {
@@ -32,6 +33,7 @@ void ofApp::setup() {
 	backend = std::make_unique<ofxGgmlDiffusionTinyGanBackend>();
 	rebuildRequest();
 	updateTrainingPlan();
+	refreshFixtureTextures();
 
 	status = ofxGgmlDiffusionUtils::describe(request);
 	if (backend->isAvailable()) {
@@ -97,6 +99,7 @@ void ofApp::drawGui() {
 	ImGui::SameLine();
 	if (ImGui::Button("Refresh plan")) {
 		updateTrainingPlan();
+		refreshFixtureTextures();
 	}
 
 	ImGui::Separator();
@@ -155,6 +158,7 @@ void ofApp::createFixtureDataset() {
 	detail = "Wrote " + ofToString(fixtureCount) + " fixture images to " + getPreviewDatasetPath();
 	ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
 	updateTrainingPlan();
+	refreshFixtureTextures();
 }
 
 void ofApp::writePreviewPreset() {
@@ -212,6 +216,31 @@ void ofApp::updateTrainingPlan() {
 	trainingSettings.dryRun = true;
 	trainingPlan = ofxGgmlDiffusionPlanTinyGanTraining(trainingSettings);
 	trainingSummary = trainingPlan ? firstLine(trainingPlan.text) : trainingPlan.error;
+}
+
+void ofApp::refreshFixtureTextures() {
+	fixtureTextures.clear();
+	if (!trainingPlan || trainingPlan.dataset.imagePaths.empty()) {
+		return;
+	}
+
+	const auto sampleCount = std::min<std::size_t>(trainingPlan.dataset.imagePaths.size(), 8);
+	for (std::size_t i = 0; i < sampleCount; ++i) {
+		ofxGgmlDiffusionTinyGanImageSample sample;
+		std::string error;
+		if (!ofxGgmlDiffusionLoadTinyGanPpmImage(trainingPlan.dataset.imagePaths[i], sample, error)) {
+			ofLogWarning("ofxGgmlDiffusionGanExample") << error;
+			continue;
+		}
+
+		ofPixels pixels;
+		pixels.setFromPixels(sample.pixels.data(), sample.width, sample.height, OF_IMAGE_COLOR);
+		if (!pixels.isAllocated()) {
+			continue;
+		}
+		fixtureTextures.emplace_back();
+		fixtureTextures.back().loadData(pixels);
+	}
 }
 
 void ofApp::rebuildRequest() {
@@ -290,22 +319,120 @@ void ofApp::draw() {
 	const float previewY = 32.0f;
 	const float previewMaxWidth = std::max(120.0f, ofGetWidth() - previewX - 32.0f);
 	const float previewMaxHeight = std::max(120.0f, ofGetHeight() - previewY - 32.0f);
+	const float outputSize = std::min({previewMaxWidth, previewMaxHeight * 0.52f, 512.0f});
 
 	ofSetColor(240);
 	ofDrawBitmapString("GAN preview", previewX, previewY);
 	if (texture.isAllocated()) {
-		const float scale = std::min(previewMaxWidth / texture.getWidth(), previewMaxHeight / texture.getHeight());
+		const float scale = std::min(outputSize / texture.getWidth(), outputSize / texture.getHeight());
 		texture.draw(previewX, previewY + 24.0f, texture.getWidth() * scale, texture.getHeight() * scale);
 	} else {
 		ofSetColor(120);
 		ofNoFill();
-		ofDrawRectangle(previewX, previewY + 24.0f, std::min(512.0f, previewMaxWidth), std::min(512.0f, previewMaxHeight));
+		ofDrawRectangle(previewX, previewY + 24.0f, outputSize, outputSize);
 		ofFill();
 		ofSetColor(190);
 		ofDrawBitmapString("Press Run or R", previewX + 18.0f, previewY + 54.0f);
 	}
 
+	drawTrainingPreview(
+		previewX,
+		previewY + outputSize + 64.0f,
+		previewMaxWidth,
+		std::max(120.0f, previewMaxHeight - outputSize - 64.0f));
+
 	gui.begin();
 	drawGui();
 	gui.end();
+}
+
+void ofApp::drawTrainingPreview(float x, float y, float width, float height) {
+	ofSetColor(240);
+	ofDrawBitmapString("Fixture samples", x, y);
+
+	const float rowY = y + 18.0f;
+	const float gap = 8.0f;
+	const int maxVisible = fixtureTextures.empty() ? 1 : static_cast<int>(fixtureTextures.size());
+	const float thumbnailSize = std::min(64.0f, std::max(36.0f, (width - gap * (maxVisible - 1)) / maxVisible));
+	if (fixtureTextures.empty()) {
+		ofSetColor(120);
+		ofNoFill();
+		ofDrawRectangle(x, rowY, thumbnailSize, thumbnailSize);
+		ofFill();
+		ofSetColor(190);
+		ofDrawBitmapString("Create fixtures", x + thumbnailSize + 12.0f, rowY + 22.0f);
+	} else {
+		for (std::size_t i = 0; i < fixtureTextures.size(); ++i) {
+			const float thumbX = x + static_cast<float>(i) * (thumbnailSize + gap);
+			fixtureTextures[i].draw(thumbX, rowY, thumbnailSize, thumbnailSize);
+		}
+	}
+
+	const float curveY = rowY + thumbnailSize + 36.0f;
+	const float curveHeight = std::max(72.0f, height - (curveY - y));
+	drawLossCurve(x, curveY, width, curveHeight);
+}
+
+void ofApp::drawLossCurve(float x, float y, float width, float height) {
+	ofSetColor(240);
+	ofDrawBitmapString("Dry-run loss", x, y);
+	const float plotX = x;
+	const float plotY = y + 16.0f;
+	const float plotWidth = width;
+	const float plotHeight = std::max(48.0f, height - 22.0f);
+
+	ofSetColor(70);
+	ofNoFill();
+	ofDrawRectangle(plotX, plotY, plotWidth, plotHeight);
+	ofFill();
+
+	if (!trainingPlan || trainingPlan.steps.empty()) {
+		ofSetColor(190);
+		ofDrawBitmapString("No dry-run steps yet", plotX + 12.0f, plotY + 28.0f);
+		return;
+	}
+
+	float minLoss = std::numeric_limits<float>::max();
+	float maxLoss = std::numeric_limits<float>::lowest();
+	for (const auto& step : trainingPlan.steps) {
+		minLoss = std::min({minLoss, step.discriminatorLoss, step.generatorLoss});
+		maxLoss = std::max({maxLoss, step.discriminatorLoss, step.generatorLoss});
+	}
+	if (maxLoss - minLoss < 0.0001f) {
+		maxLoss = minLoss + 1.0f;
+	}
+
+	auto mapPoint = [&](std::size_t index, float value) {
+		const float t = trainingPlan.steps.size() == 1
+			? 0.0f
+			: static_cast<float>(index) / static_cast<float>(trainingPlan.steps.size() - 1);
+		const float normalized = (value - minLoss) / (maxLoss - minLoss);
+		return glm::vec2(
+			plotX + t * plotWidth,
+			plotY + plotHeight - normalized * plotHeight);
+	};
+
+	for (std::size_t i = 1; i < trainingPlan.steps.size(); ++i) {
+		const auto a = mapPoint(i - 1, trainingPlan.steps[i - 1].discriminatorLoss);
+		const auto b = mapPoint(i, trainingPlan.steps[i].discriminatorLoss);
+		ofSetColor(245, 176, 65);
+		ofDrawLine(a.x, a.y, b.x, b.y);
+		const auto c = mapPoint(i - 1, trainingPlan.steps[i - 1].generatorLoss);
+		const auto d = mapPoint(i, trainingPlan.steps[i].generatorLoss);
+		ofSetColor(91, 192, 222);
+		ofDrawLine(c.x, c.y, d.x, d.y);
+	}
+	for (std::size_t i = 0; i < trainingPlan.steps.size(); ++i) {
+		const auto d = mapPoint(i, trainingPlan.steps[i].discriminatorLoss);
+		ofSetColor(245, 176, 65);
+		ofDrawCircle(d.x, d.y, 2.5f);
+		const auto g = mapPoint(i, trainingPlan.steps[i].generatorLoss);
+		ofSetColor(91, 192, 222);
+		ofDrawCircle(g.x, g.y, 2.5f);
+	}
+
+	ofSetColor(245, 176, 65);
+	ofDrawBitmapString("D", plotX + 8.0f, plotY + 16.0f);
+	ofSetColor(91, 192, 222);
+	ofDrawBitmapString("G", plotX + 28.0f, plotY + 16.0f);
 }

@@ -12,7 +12,9 @@ shape used by the proof backend.
 
 Inside the example, use the ImGui panel to edit the prompt, create fixture
 images, write a preview preset, select the generator mode, and run the preview.
-The script path is still useful for repeatable setup and dry-run validation:
+The right side shows the generated image, fixture thumbnails, and the dry-run
+discriminator/generator loss preview. The script path is still useful for
+repeatable setup and dry-run validation:
 
 ```powershell
 ..\scripts\create-tiny-gan-preset.bat

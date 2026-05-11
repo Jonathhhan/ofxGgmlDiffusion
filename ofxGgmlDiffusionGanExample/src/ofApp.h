@@ -7,6 +7,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
 class ofApp : public ofBaseApp {
 public:
@@ -27,6 +28,9 @@ private:
 	void createFixtureDataset();
 	void writePreviewPreset();
 	void updateTrainingPlan();
+	void refreshFixtureTextures();
+	void drawTrainingPreview(float x, float y, float width, float height);
+	void drawLossCurve(float x, float y, float width, float height);
 	std::string findGeneratorPath() const;
 	std::string getPresetPath() const;
 	std::string getPreviewPresetPath() const;
@@ -40,6 +44,7 @@ private:
 	ofxGgmlDiffusionRequest request;
 	std::unique_ptr<ofxGgmlDiffusionImageGenerationBackend> backend;
 	ofTexture texture;
+	std::vector<ofTexture> fixtureTextures;
 	GeneratorMode generatorMode = GeneratorMode::Builtin;
 	int generatorModeIndex = 0;
 	int fixtureCount = 8;
