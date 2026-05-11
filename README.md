@@ -124,6 +124,8 @@ The public API now has the first boring boundary for that work:
   files before any real training work starts
 - `scripts\create-tiny-gan-fixtures.*` writes deterministic 64x64 ASCII PPM
   fixture images for scanner tests and future toy training experiments
+- `ofxGgmlDiffusionLoadTinyGanPpmImage()` loads those fixture images and creates
+  normalized float pixels in `[-1, 1]` for the future discriminator path
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 

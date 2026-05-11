@@ -5,6 +5,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -206,6 +207,30 @@ int main() {
 		datasetScan.unsupportedFileCount != 1 ||
 		datasetScan.imagePaths.size() != 3) {
 		std::cerr << "tiny GAN dataset scan failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	ofxGgmlDiffusionTinyGanImageSample sample;
+	std::string sampleError;
+	if (!ofxGgmlDiffusionLoadTinyGanPpmImage(datasetScan.imagePaths.front(), sample, sampleError) ||
+		!sample.isAllocated() ||
+		sample.width != 64 ||
+		sample.height != 64 ||
+		sample.channels != 3 ||
+		sample.pixels.size() != 64 * 64 * 3 ||
+		sample.normalizedPixels.size() != sample.pixels.size()) {
+		std::cerr << "tiny GAN PPM fixture load failed: " << sampleError << "\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	const auto normalized = ofxGgmlDiffusionNormalizeTinyGanImage(sample);
+	if (normalized.size() != sample.normalizedPixels.size() ||
+		std::fabs(normalized.front() - sample.normalizedPixels.front()) > 0.0001f ||
+		sample.normalizedPixels.front() < -1.0f ||
+		sample.normalizedPixels.front() > 1.0f ||
+		sample.normalizedPixels[1] < -1.0f ||
+		sample.normalizedPixels[1] > 1.0f) {
+		std::cerr << "tiny GAN PPM normalization failed\n";
 		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}

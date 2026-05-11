@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -33,6 +34,18 @@ struct ofxGgmlDiffusionTinyGanDatasetScan {
 	int unsupportedFileCount = 0;
 	std::vector<std::string> imagePaths;
 	std::vector<std::string> warnings;
+};
+
+struct ofxGgmlDiffusionTinyGanImageSample {
+	int width = 0;
+	int height = 0;
+	int channels = 0;
+	std::vector<std::uint8_t> pixels;
+	std::vector<float> normalizedPixels;
+
+	bool isAllocated() const {
+		return width > 0 && height > 0 && channels > 0 && !pixels.empty();
+	}
 };
 
 struct ofxGgmlDiffusionTinyGanTrainingResult {
@@ -73,6 +86,12 @@ bool ofxGgmlDiffusionWriteTinyGanFixtureDataset(
 	const std::string& datasetPath,
 	int imageCount,
 	std::string& error);
+bool ofxGgmlDiffusionLoadTinyGanPpmImage(
+	const std::string& imagePath,
+	ofxGgmlDiffusionTinyGanImageSample& sample,
+	std::string& error);
+std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(
+	const ofxGgmlDiffusionTinyGanImageSample& sample);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(

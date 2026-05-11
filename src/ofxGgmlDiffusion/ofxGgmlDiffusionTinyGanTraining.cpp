@@ -6,7 +6,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
+#include <utility>
 
 namespace {
 	ofxGgmlDiffusionTinyGanTrainingResult makeTrainingError(const std::string& message) {
@@ -55,6 +57,35 @@ namespace {
 			return checker ? 196 : 56;
 		}
 		return gradient;
+	}
+
+	bool readPpmToken(std::istream& input, std::string& token) {
+		while (input >> token) {
+			if (!token.empty() && token[0] == '#') {
+				input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+				continue;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	bool parsePpmInt(std::istream& input, int& value) {
+		std::string token;
+		if (!readPpmToken(input, token)) {
+			return false;
+		}
+		try {
+			std::size_t used = 0;
+			const int parsed = std::stoi(token, &used);
+			if (used != token.size()) {
+				return false;
+			}
+			value = parsed;
+			return true;
+		} catch (...) {
+			return false;
+		}
 	}
 }
 
@@ -205,6 +236,85 @@ bool ofxGgmlDiffusionWriteTinyGanFixtureDataset(
 		}
 	}
 
+	return true;
+}
+
+std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(
+	const ofxGgmlDiffusionTinyGanImageSample& sample) {
+	std::vector<float> normalized;
+	normalized.reserve(sample.pixels.size());
+	for (const auto value : sample.pixels) {
+		normalized.push_back((static_cast<float>(value) / 127.5f) - 1.0f);
+	}
+	return normalized;
+}
+
+bool ofxGgmlDiffusionLoadTinyGanPpmImage(
+	const std::string& imagePath,
+	ofxGgmlDiffusionTinyGanImageSample& sample,
+	std::string& error) {
+	error.clear();
+	sample = ofxGgmlDiffusionTinyGanImageSample{};
+	if (imagePath.empty()) {
+		error = "imagePath is required";
+		return false;
+	}
+
+	std::ifstream file(imagePath);
+	if (!file) {
+		error = "could not open PPM image: " + imagePath;
+		return false;
+	}
+
+	std::string magic;
+	if (!readPpmToken(file, magic) || magic != "P3") {
+		error = "only ASCII P3 PPM images are supported";
+		return false;
+	}
+
+	int width = 0;
+	int height = 0;
+	int maxValue = 0;
+	if (!parsePpmInt(file, width) ||
+		!parsePpmInt(file, height) ||
+		!parsePpmInt(file, maxValue)) {
+		error = "invalid PPM header";
+		return false;
+	}
+	if (width <= 0 || height <= 0) {
+		error = "PPM dimensions must be positive";
+		return false;
+	}
+	if (maxValue <= 0 || maxValue > 255) {
+		error = "PPM max value must be between 1 and 255";
+		return false;
+	}
+
+	const int channels = 3;
+	const std::size_t valueCount = static_cast<std::size_t>(width) *
+		static_cast<std::size_t>(height) *
+		static_cast<std::size_t>(channels);
+	std::vector<std::uint8_t> pixels;
+	pixels.reserve(valueCount);
+	for (std::size_t i = 0; i < valueCount; ++i) {
+		int value = 0;
+		if (!parsePpmInt(file, value)) {
+			error = "PPM ended before all pixels were read";
+			return false;
+		}
+		if (value < 0 || value > maxValue) {
+			error = "PPM pixel value out of range";
+			return false;
+		}
+		const float scaled = (static_cast<float>(value) / static_cast<float>(maxValue)) * 255.0f;
+		pixels.push_back(static_cast<std::uint8_t>(std::round(scaled)));
+	}
+
+	sample.width = width;
+	sample.height = height;
+	sample.channels = channels;
+	sample.pixels = std::move(pixels);
+	sample.normalizedPixels = ofxGgmlDiffusionNormalizeTinyGanImage(sample);
 	return true;
 }
 

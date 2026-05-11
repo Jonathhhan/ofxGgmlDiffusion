@@ -41,6 +41,8 @@
   supported image counts and ignored files without requiring real training.
 - Add generated 64x64 PPM fixture images for tiny GAN scanner tests and future
   toy training experiments without committing binary assets.
+- Add a tiny PPM loader and normalization path so fixture images can feed a
+  discriminator forward pass.
 
 ## Next Milestones
 
@@ -53,8 +55,8 @@
 - Implement a toy discriminator/training loop behind the tiny GAN training
   contract with real weight updates, then require repeatable fixture outputs
   before exposing non-dry-run training.
-- Add a tiny PPM loader and normalization path so fixture images can feed a
-  discriminator forward pass.
+- Add a deterministic tiny discriminator forward pass over normalized fixture
+  pixels.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp
