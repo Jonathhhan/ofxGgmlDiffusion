@@ -70,13 +70,19 @@ $output = & (Join-Path $scriptRoot "create-tiny-gan-preset.ps1") -DryRun -Output
 Assert-Contains $output "Tiny GAN preset output: $presetPath" "Tiny GAN preset dry-run"
 Assert-Contains $output "Dry run complete" "Tiny GAN preset dry-run"
 
+Write-Step "Tiny GAN fixture dry-run"
+$fixturePath = Join-Path $scratchDir "tiny-gan-fixtures-dry-run"
+$output = & (Join-Path $scriptRoot "create-tiny-gan-fixtures.ps1") -DryRun -OutputPath $fixturePath -Count 3 *>&1 |
+	ForEach-Object { $_.ToString() }
+
+Assert-Contains $output "Tiny GAN fixture dataset output: $fixturePath" "Tiny GAN fixture dry-run"
+Assert-Contains $output "Image count: 3" "Tiny GAN fixture dry-run"
+Assert-Contains $output "Dry run complete" "Tiny GAN fixture dry-run"
+
 Write-Step "Tiny GAN training dry-run"
 $trainedPresetPath = Join-Path $scratchDir "tiny-trained.ofxggmlgan"
 $datasetPath = Join-Path $scratchDir "tiny-gan-dataset"
-$nestedDatasetPath = Join-Path $datasetPath "nested"
-New-Item -ItemType Directory -Force -Path $nestedDatasetPath | Out-Null
-Set-Content -LiteralPath (Join-Path $datasetPath "a.png") -Value "dry-run"
-Set-Content -LiteralPath (Join-Path $nestedDatasetPath "b.jpg") -Value "dry-run"
+& (Join-Path $scriptRoot "create-tiny-gan-fixtures.ps1") -OutputPath $datasetPath -Count 3 -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $datasetPath "notes.txt") -Value "dry-run"
 $output = & (Join-Path $scriptRoot "train-tiny-gan.ps1") -DryRun -Dataset $datasetPath -OutputPreset $trainedPresetPath -Epochs 2 -BatchSize 8 -DryRunBatchesPerEpoch 3 *>&1 |
 	ForEach-Object { $_.ToString() }
@@ -84,7 +90,7 @@ $output = & (Join-Path $scriptRoot "train-tiny-gan.ps1") -DryRun -Dataset $datas
 Assert-Contains $output "Tiny GAN training dry-run" "Tiny GAN training dry-run"
 Assert-Contains $output "Dataset: $datasetPath" "Tiny GAN training dry-run"
 Assert-Contains $output "Dataset exists: yes" "Tiny GAN training dry-run"
-Assert-Contains $output "Dataset images: 2" "Tiny GAN training dry-run"
+Assert-Contains $output "Dataset images: 3" "Tiny GAN training dry-run"
 Assert-Contains $output "Dataset unsupported files: 1" "Tiny GAN training dry-run"
 Assert-Contains $output "Output preset: $trainedPresetPath" "Tiny GAN training dry-run"
 Assert-Contains $output "Discriminator architecture: tiny-mlp-binary-classifier" "Tiny GAN training dry-run"

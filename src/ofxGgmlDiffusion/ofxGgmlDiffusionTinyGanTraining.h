@@ -69,6 +69,10 @@ ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionValidateTinyGanTraining(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanDatasetScan ofxGgmlDiffusionScanTinyGanDataset(
 	const std::string& datasetPath);
+bool ofxGgmlDiffusionWriteTinyGanFixtureDataset(
+	const std::string& datasetPath,
+	int imageCount,
+	std::string& error);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(

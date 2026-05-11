@@ -193,18 +193,18 @@ int main() {
 
 	const std::filesystem::path datasetPath = "tiny-gan-dataset-test";
 	std::filesystem::remove_all(datasetPath);
-	std::filesystem::create_directories(datasetPath / "nested");
-	{
-		std::ofstream(datasetPath / "a.png") << "not a real image yet";
-		std::ofstream(datasetPath / "nested" / "b.JPG") << "not a real image yet";
-		std::ofstream(datasetPath / "notes.txt") << "metadata";
+	std::string fixtureError;
+	if (!ofxGgmlDiffusionWriteTinyGanFixtureDataset(datasetPath.string(), 3, fixtureError)) {
+		std::cerr << "tiny GAN fixture dataset write failed: " << fixtureError << "\n";
+		return 1;
 	}
+	std::ofstream(datasetPath / "notes.txt") << "metadata";
 	const auto datasetScan = ofxGgmlDiffusionScanTinyGanDataset(datasetPath.string());
 	if (!datasetScan.exists ||
 		!datasetScan.isDirectory ||
-		datasetScan.imageCount != 2 ||
+		datasetScan.imageCount != 3 ||
 		datasetScan.unsupportedFileCount != 1 ||
-		datasetScan.imagePaths.size() != 2) {
+		datasetScan.imagePaths.size() != 3) {
 		std::cerr << "tiny GAN dataset scan failed\n";
 		std::filesystem::remove_all(datasetPath);
 		return 1;
@@ -234,7 +234,7 @@ int main() {
 		trainingPlan.batchesPerEpoch != trainingSettings.dryRunBatchesPerEpoch ||
 		trainingPlan.plannedDiscriminatorUpdates != 6 ||
 		trainingPlan.plannedGeneratorUpdates != 6 ||
-		trainingPlan.dataset.imageCount != 2 ||
+		trainingPlan.dataset.imageCount != 3 ||
 		trainingPlan.dataset.unsupportedFileCount != 1 ||
 		trainingPlan.steps.size() != 6 ||
 		trainingPlan.finalDiscriminatorLoss <= 0.0f ||

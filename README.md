@@ -120,8 +120,10 @@ The public API now has the first boring boundary for that work:
   generator update counts, so dataset/output/optimizer assumptions are checked
   before real adversarial training is attempted
 - the training dry-run scans a dataset directory recursively and reports
-  supported image files (`.png`, `.jpg`, `.jpeg`, `.bmp`, `.tga`) plus ignored
+  supported image files (`.png`, `.jpg`, `.jpeg`, `.bmp`, `.tga`, `.ppm`) plus ignored
   files before any real training work starts
+- `scripts\create-tiny-gan-fixtures.*` writes deterministic 64x64 ASCII PPM
+  fixture images for scanner tests and future toy training experiments
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 
@@ -148,6 +150,7 @@ It reports a clear unavailable-backend result until a real GAN runtime is wired.
 scripts\run-diffusion-example.bat -DryRun
 scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
 scripts\create-tiny-gan-preset.bat
+scripts\create-tiny-gan-fixtures.bat -OutputPath ofxGgmlDiffusionGanExample\bin\data\datasets\tiny-fixtures -Count 8
 scripts\train-tiny-gan.bat -DryRun -Dataset C:\path\to\images -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-trained.ofxggmlgan -Epochs 2 -DryRunBatchesPerEpoch 3
 scripts\run-gan-example.bat -DryRun
 scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\data\models\tiny-mlp.ofxggmlgan

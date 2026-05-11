@@ -104,3 +104,8 @@ The dataset scanner is intentionally lightweight: recursively count supported
 image files and unsupported regular files, then surface missing or empty
 datasets as warnings during dry-runs. Real adversarial training should only land
 after it can produce repeatable fixtures in tests.
+
+Tiny GAN fixtures are generated, not committed. The fixture writer emits
+deterministic 64x64 ASCII PPM images with stripe, checker, and gradient patterns
+so scanner tests and future toy training steps can share valid image files
+without pulling in an image codec dependency.

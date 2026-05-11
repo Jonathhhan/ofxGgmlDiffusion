@@ -4,6 +4,8 @@
 #include <cctype>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <sstream>
 
 namespace {
@@ -38,7 +40,21 @@ namespace {
 			extension == ".jpg" ||
 			extension == ".jpeg" ||
 			extension == ".bmp" ||
-			extension == ".tga";
+			extension == ".tga" ||
+			extension == ".ppm";
+	}
+
+	int fixtureChannelValue(int x, int y, int index, int channel) {
+		const int stripe = ((x / 8) + index + channel) % 2;
+		const int checker = ((x / 8) + (y / 8) + index) % 2;
+		const int gradient = (x * 3 + y * 5 + index * 29 + channel * 47) % 256;
+		if (index % 3 == 0) {
+			return stripe ? 224 : 32;
+		}
+		if (index % 3 == 1) {
+			return checker ? 196 : 56;
+		}
+		return gradient;
 	}
 }
 
@@ -141,6 +157,55 @@ ofxGgmlDiffusionTinyGanDatasetScan ofxGgmlDiffusionScanTinyGanDataset(
 		scan.warnings.push_back("dataset contains no supported images");
 	}
 	return scan;
+}
+
+bool ofxGgmlDiffusionWriteTinyGanFixtureDataset(
+	const std::string& datasetPath,
+	int imageCount,
+	std::string& error) {
+	error.clear();
+	if (datasetPath.empty()) {
+		error = "datasetPath is required";
+		return false;
+	}
+	if (imageCount < 1 || imageCount > 1024) {
+		error = "imageCount must be between 1 and 1024";
+		return false;
+	}
+
+	const std::filesystem::path root(datasetPath);
+	std::error_code code;
+	std::filesystem::create_directories(root, code);
+	if (code) {
+		error = "could not create fixture dataset directory";
+		return false;
+	}
+
+	for (int index = 0; index < imageCount; ++index) {
+		std::ostringstream name;
+		name << "fixture-" << std::setw(3) << std::setfill('0') << index << ".ppm";
+		const auto path = root / name.str();
+		std::ofstream file(path, std::ios::out | std::ios::trunc);
+		if (!file) {
+			error = "could not write fixture image: " + path.string();
+			return false;
+		}
+
+		file << "P3\n64 64\n255\n";
+		for (int y = 0; y < 64; ++y) {
+			for (int x = 0; x < 64; ++x) {
+				file << fixtureChannelValue(x, y, index, 0) << " "
+					<< fixtureChannelValue(x, y, index, 1) << " "
+					<< fixtureChannelValue(x, y, index, 2);
+				if (x < 63) {
+					file << " ";
+				}
+			}
+			file << "\n";
+		}
+	}
+
+	return true;
 }
 
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(

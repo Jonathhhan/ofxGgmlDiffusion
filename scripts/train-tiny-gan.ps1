@@ -52,7 +52,7 @@ if ($LearningRate -le 0) {
 	throw "LearningRate must be greater than zero."
 }
 
-$supportedExtensions = @(".png", ".jpg", ".jpeg", ".bmp", ".tga")
+$supportedExtensions = @(".png", ".jpg", ".jpeg", ".bmp", ".tga", ".ppm")
 $datasetLabel = if ([string]::IsNullOrWhiteSpace($Dataset)) { "(synthetic placeholder)" } else { $Dataset }
 $datasetExists = $false
 $datasetIsDirectory = $false
