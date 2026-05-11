@@ -13,3 +13,8 @@ one at `bin/data/models/model.safetensors`.
 
 Press `R` to run one blocking text-to-image request. Output is saved under
 `bin/data/outputs`.
+
+```powershell
+..\scripts\run-diffusion-example.bat -DryRun
+..\scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
+```

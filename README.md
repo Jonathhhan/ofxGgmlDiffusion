@@ -57,6 +57,11 @@ it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and
 `ofxGgmlCore`, set `OFXGGML_DIFFUSION_MODEL` or place a model at
 `bin/data/models/model.safetensors`, then press `R` to run one generation.
 
+```powershell
+scripts\run-diffusion-example.bat -DryRun
+scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
+```
+
 ## Dependencies
 
 - openFrameworks

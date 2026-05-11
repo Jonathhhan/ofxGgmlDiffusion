@@ -61,6 +61,15 @@ Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.sh") "stable-diffusio
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.ps1") "stable-diffusion dry-run test"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.bat") "stable-diffusion Windows dry-run test wrapper"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.sh") "stable-diffusion shell dry-run test wrapper"
+Assert-Path (Join-Path $scriptRoot "build-diffusion-example.ps1") "diffusion example build script"
+Assert-Path (Join-Path $scriptRoot "build-diffusion-example.bat") "diffusion example Windows build wrapper"
+Assert-Path (Join-Path $scriptRoot "build-diffusion-example.sh") "diffusion example shell build wrapper"
+Assert-Path (Join-Path $scriptRoot "run-diffusion-example.ps1") "diffusion example run script"
+Assert-Path (Join-Path $scriptRoot "run-diffusion-example.bat") "diffusion example Windows run wrapper"
+Assert-Path (Join-Path $scriptRoot "run-diffusion-example.sh") "diffusion example shell run wrapper"
+Assert-Path (Join-Path $scriptRoot "test-launch-dry-run.ps1") "diffusion launch dry-run test"
+Assert-Path (Join-Path $scriptRoot "test-launch-dry-run.bat") "diffusion launch dry-run Windows wrapper"
+Assert-Path (Join-Path $scriptRoot "test-launch-dry-run.sh") "diffusion launch dry-run shell wrapper"
 Assert-Path (Join-Path $addonRoot "libs\stable-diffusion\bin\.gitkeep") "stable-diffusion bin placeholder"
 Assert-Path (Join-Path $addonRoot "libs\stable-diffusion\include\.gitkeep") "stable-diffusion include placeholder"
 Assert-Path (Join-Path $addonRoot "libs\stable-diffusion\lib\.gitkeep") "stable-diffusion lib placeholder"
@@ -91,6 +100,9 @@ foreach ($relative in $forbidden) {
 
 Write-Step "Checking stable-diffusion.cpp setup dry-runs"
 & (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.ps1")
+
+Write-Step "Checking launch dry-runs"
+& (Join-Path $scriptRoot "test-launch-dry-run.ps1")
 
 Write-Step "Running headless tests"
 & (Join-Path $scriptRoot "test-addon.ps1")

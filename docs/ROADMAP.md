@@ -16,10 +16,11 @@
 - Add image/pixel saving helpers for generated `ofxGgmlDiffusionImage` data.
 - Convert the root prompt smoke example into a text-to-image example that
   accepts a user-provided local model.
+- Add generated-project build/run scripts plus launch dry-run validation for
+  the text-to-image example.
 
 ## Next Milestones
 
 - Add threaded/cancellable generation around the native bridge.
-- Add a generated-project build script for the text-to-image example.
 - Add focused tests around request/result helpers.
 - Document the `clone -> setup -> run` path from a new user's point of view.

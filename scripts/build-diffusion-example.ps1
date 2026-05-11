@@ -1,0 +1,100 @@
+param(
+	[string]$Configuration = "Release",
+	[string]$Platform = "x64",
+	[string]$Example = "ofxGgmlDiffusionPromptExample",
+	[switch]$Clean
+)
+
+$ErrorActionPreference = "Stop"
+
+function Write-Step {
+	param([string]$Message)
+	Write-Host "==> $Message"
+}
+
+function Test-WindowsHost {
+	return !($IsLinux -or $IsMacOS)
+}
+
+function Invoke-CheckedNative {
+	param(
+		[string]$Step,
+		[scriptblock]$Command
+	)
+	& $Command
+	if ($LASTEXITCODE -ne 0) {
+		throw "$Step failed with exit code $LASTEXITCODE"
+	}
+}
+
+function Get-MsBuild {
+	$vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+	if (Test-Path -LiteralPath $vswhere) {
+		$installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath 2>$null
+		if ($installPath) {
+			$candidate = Join-Path $installPath "MSBuild\Current\Bin\MSBuild.exe"
+			if (Test-Path -LiteralPath $candidate) {
+				return $candidate
+			}
+		}
+	}
+
+	foreach ($version in @("18", "17", "16")) {
+		foreach ($edition in @("Community", "Professional", "Enterprise", "BuildTools")) {
+			$candidate = "C:\Program Files\Microsoft Visual Studio\$version\$edition\MSBuild\Current\Bin\MSBuild.exe"
+			if (Test-Path -LiteralPath $candidate) {
+				return $candidate
+			}
+		}
+	}
+	return ""
+}
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$addonRoot = Resolve-Path (Join-Path $scriptRoot "..")
+$exampleRoot = Join-Path $addonRoot $Example
+if (!(Test-Path -LiteralPath $exampleRoot -PathType Container)) {
+	throw "Example directory not found: $exampleRoot"
+}
+
+if (Test-WindowsHost) {
+	$project = Join-Path $exampleRoot "$Example.vcxproj"
+	if (!(Test-Path -LiteralPath $project -PathType Leaf)) {
+		throw "Visual Studio project not found: $project. Generate it with the openFrameworks projectGenerator first."
+	}
+	$msbuild = Get-MsBuild
+	if ([string]::IsNullOrWhiteSpace($msbuild)) {
+		throw "MSBuild.exe was not found."
+	}
+
+	$target = if ($Clean) { "Rebuild" } else { "Build" }
+	Write-Step "Building $Example $Configuration $Platform with MSBuild"
+	& $msbuild $project /t:$target /p:Configuration=$Configuration /p:Platform=$Platform /m /nr:false
+	if ($LASTEXITCODE -ne 0) {
+		throw "MSBuild $Example failed with exit code $LASTEXITCODE"
+	}
+	return
+}
+
+$makefile = Join-Path $exampleRoot "Makefile"
+if (Test-Path -LiteralPath $makefile -PathType Leaf) {
+	$target = if ($Clean) { "clean Release" } else { "Release" }
+	Write-Step "Building $Example with make"
+	Invoke-CheckedNative "make $Example" {
+		make -C $exampleRoot $target
+	}
+	return
+}
+
+if ($IsMacOS) {
+	$xcodeProject = Get-ChildItem -LiteralPath $exampleRoot -Filter "*.xcodeproj" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+	if ($xcodeProject) {
+		Write-Step "Building $Example $Configuration with xcodebuild"
+		Invoke-CheckedNative "xcodebuild $Example" {
+			xcodebuild -project $xcodeProject.FullName -configuration $Configuration
+		}
+		return
+	}
+}
+
+throw "No supported generated project was found for $Example. Generate the example project with openFrameworks projectGenerator first."
