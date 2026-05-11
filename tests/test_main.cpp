@@ -195,14 +195,33 @@ int main() {
 	trainingSettings.outputPresetPath = "models/tiny-trained.ofxggmlgan";
 	trainingSettings.epochs = 2;
 	trainingSettings.batchSize = 8;
+	trainingSettings.dryRunBatchesPerEpoch = 3;
 	trainingSettings.latentSize = 64;
 	trainingSettings.hiddenSize = 32;
+	trainingSettings.discriminatorHiddenSize = 40;
 	const auto trainingPlan = ofxGgmlDiffusionPlanTinyGanTraining(trainingSettings);
 	if (!trainingPlan ||
 		trainingPlan.text.find("tiny GAN training dry-run") == std::string::npos ||
+		trainingPlan.text.find("tiny-mlp-binary-classifier") == std::string::npos ||
 		trainingPlan.outputPresetPath != trainingSettings.outputPresetPath ||
-		trainingPlan.epochsPlanned != trainingSettings.epochs) {
+		trainingPlan.epochsPlanned != trainingSettings.epochs ||
+		trainingPlan.batchesPerEpoch != trainingSettings.dryRunBatchesPerEpoch ||
+		trainingPlan.plannedDiscriminatorUpdates != 6 ||
+		trainingPlan.plannedGeneratorUpdates != 6 ||
+		trainingPlan.steps.size() != 6 ||
+		trainingPlan.finalDiscriminatorLoss <= 0.0f ||
+		trainingPlan.finalGeneratorLoss <= 0.0f) {
 		std::cerr << "tiny GAN training dry-run plan failed\n";
+		return 1;
+	}
+	const auto dryRunSteps = ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(trainingSettings);
+	if (dryRunSteps.size() != trainingPlan.steps.size() ||
+		dryRunSteps.front().epoch != 1 ||
+		dryRunSteps.front().batch != 1 ||
+		dryRunSteps.back().epoch != 2 ||
+		dryRunSteps.back().batch != 3 ||
+		dryRunSteps.back().generatorLoss >= dryRunSteps.front().generatorLoss) {
+		std::cerr << "tiny GAN dry-run step trace failed\n";
 		return 1;
 	}
 	auto invalidTrainingSettings = trainingSettings;
@@ -215,6 +234,12 @@ int main() {
 	invalidTrainingSettings.imageWidth = 128;
 	if (ofxGgmlDiffusionValidateTinyGanTraining(invalidTrainingSettings).isOk()) {
 		std::cerr << "invalid tiny GAN training size unexpectedly passed\n";
+		return 1;
+	}
+	invalidTrainingSettings = trainingSettings;
+	invalidTrainingSettings.discriminatorHiddenSize = 4;
+	if (ofxGgmlDiffusionValidateTinyGanTraining(invalidTrainingSettings).isOk()) {
+		std::cerr << "invalid tiny GAN discriminator size unexpectedly passed\n";
 		return 1;
 	}
 

@@ -3,8 +3,10 @@ param(
 	[string]$OutputPreset = "",
 	[int]$LatentSize = 512,
 	[int]$HiddenSize = 96,
+	[int]$DiscriminatorHiddenSize = 96,
 	[int]$Epochs = 1,
 	[int]$BatchSize = 4,
+	[int]$DryRunBatchesPerEpoch = 1,
 	[float]$LearningRate = 0.001,
 	[switch]$DryRun
 )
@@ -34,24 +36,41 @@ if ($LatentSize -lt 8 -or $LatentSize -gt 1024) {
 if ($HiddenSize -lt 8 -or $HiddenSize -gt 512) {
 	throw "HiddenSize must be between 8 and 512."
 }
+if ($DiscriminatorHiddenSize -lt 8 -or $DiscriminatorHiddenSize -gt 512) {
+	throw "DiscriminatorHiddenSize must be between 8 and 512."
+}
 if ($Epochs -lt 1) {
 	throw "Epochs must be at least 1."
 }
 if ($BatchSize -lt 1) {
 	throw "BatchSize must be at least 1."
 }
+if ($DryRunBatchesPerEpoch -lt 1 -or $DryRunBatchesPerEpoch -gt 128) {
+	throw "DryRunBatchesPerEpoch must be between 1 and 128."
+}
 if ($LearningRate -le 0) {
 	throw "LearningRate must be greater than zero."
 }
 
+$plannedUpdates = $Epochs * $DryRunBatchesPerEpoch
+$finalDiscriminatorLoss = [Math]::Round(1.3862944 - 0.18, 6)
+$finalGeneratorLoss = [Math]::Round(0.6931472 - 0.07, 6)
+
 Write-Step "Tiny GAN training dry-run"
 Write-Step "Dataset: $(if ([string]::IsNullOrWhiteSpace($Dataset)) { '(synthetic placeholder)' } else { $Dataset })"
 Write-Step "Output preset: $OutputPreset"
-Write-Step "Architecture: tiny-mlp"
+Write-Step "Generator architecture: tiny-mlp"
+Write-Step "Discriminator architecture: tiny-mlp-binary-classifier"
 Write-Step "Image size: 64x64"
 Write-Step "LatentSize: $LatentSize"
-Write-Step "HiddenSize: $HiddenSize"
+Write-Step "GeneratorHiddenSize: $HiddenSize"
+Write-Step "DiscriminatorHiddenSize: $DiscriminatorHiddenSize"
 Write-Step "Epochs: $Epochs"
 Write-Step "BatchSize: $BatchSize"
+Write-Step "DryRunBatchesPerEpoch: $DryRunBatchesPerEpoch"
+Write-Step "Planned discriminator updates: $plannedUpdates"
+Write-Step "Planned generator updates: $plannedUpdates"
 Write-Step "LearningRate: $LearningRate"
+Write-Step "Final dry-run discriminator loss: $finalDiscriminatorLoss"
+Write-Step "Final dry-run generator loss: $finalGeneratorLoss"
 Write-Step "Dry run complete; no files were written and no weights were trained"

@@ -116,8 +116,9 @@ The public API now has the first boring boundary for that work:
 - `scripts\create-tiny-gan-preset.*` writes a small `.ofxggmlgan` preset file
   for testing exported-generator loading without committing model binaries
 - `ofxGgmlDiffusionTinyGanTraining.*` and `scripts\train-tiny-gan.*` define the
-  first dry-run-only training plan, so dataset/output/optimizer assumptions are
-  checked before real adversarial training is attempted
+  first dry-run-only training loop plan, including paired discriminator and
+  generator update counts, so dataset/output/optimizer assumptions are checked
+  before real adversarial training is attempted
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 
@@ -144,7 +145,7 @@ It reports a clear unavailable-backend result until a real GAN runtime is wired.
 scripts\run-diffusion-example.bat -DryRun
 scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
 scripts\create-tiny-gan-preset.bat
-scripts\train-tiny-gan.bat -DryRun -Dataset C:\path\to\images -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-trained.ofxggmlgan
+scripts\train-tiny-gan.bat -DryRun -Dataset C:\path\to\images -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-trained.ofxggmlgan -Epochs 2 -DryRunBatchesPerEpoch 3
 scripts\run-gan-example.bat -DryRun
 scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\data\models\tiny-mlp.ofxggmlgan
 ```

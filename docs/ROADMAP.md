@@ -34,8 +34,9 @@
   that produces image pixels when Core's ggml runtime is installed.
 - Add `.ofxggmlgan` tiny preset loading plus scripts to create local preset
   files without committing generated model assets.
-- Add a dry-run-only tiny GAN training contract and script so the future
-  dataset/output/optimizer path is explicit before real training code lands.
+- Add a dry-run-only tiny GAN training contract and script with paired
+  discriminator/generator update planning so the future dataset/output/optimizer
+  path is explicit before real training code lands.
 
 ## Next Milestones
 
@@ -46,8 +47,8 @@
 - Choose a small exported generator format and fixture model for the first
   non-builtin GAN inference backend.
 - Implement a toy discriminator/training loop behind the tiny GAN training
-  contract, then require repeatable fixture outputs before exposing non-dry-run
-  training.
+  contract with real weight updates, then require repeatable fixture outputs
+  before exposing non-dry-run training.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp

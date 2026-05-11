@@ -72,12 +72,15 @@ Assert-Contains $output "Dry run complete" "Tiny GAN preset dry-run"
 
 Write-Step "Tiny GAN training dry-run"
 $trainedPresetPath = Join-Path $scratchDir "tiny-trained.ofxggmlgan"
-$output = & (Join-Path $scriptRoot "train-tiny-gan.ps1") -DryRun -Dataset "synthetic-icons" -OutputPreset $trainedPresetPath -Epochs 2 -BatchSize 8 *>&1 |
+$output = & (Join-Path $scriptRoot "train-tiny-gan.ps1") -DryRun -Dataset "synthetic-icons" -OutputPreset $trainedPresetPath -Epochs 2 -BatchSize 8 -DryRunBatchesPerEpoch 3 *>&1 |
 	ForEach-Object { $_.ToString() }
 
 Assert-Contains $output "Tiny GAN training dry-run" "Tiny GAN training dry-run"
 Assert-Contains $output "Dataset: synthetic-icons" "Tiny GAN training dry-run"
 Assert-Contains $output "Output preset: $trainedPresetPath" "Tiny GAN training dry-run"
+Assert-Contains $output "Discriminator architecture: tiny-mlp-binary-classifier" "Tiny GAN training dry-run"
+Assert-Contains $output "Planned discriminator updates: 6" "Tiny GAN training dry-run"
+Assert-Contains $output "Planned generator updates: 6" "Tiny GAN training dry-run"
 Assert-Contains $output "Dry run complete" "Tiny GAN training dry-run"
 
 Write-Step "Launch dry-run smoke coverage passed"
