@@ -16,6 +16,7 @@ No dependency should point from `ofxGgmlCore` back to `ofxGgmlDiffusion`.
 
 - diffusion-specific request/result helpers
 - the opt-in stable-diffusion.cpp native bridge
+- GAN-style image generation backend boundaries
 - the worker-thread async runner around native generation
 - openFrameworks image conversion/saving helpers for diffusion results
 - identity adapter descriptors such as PhotoMaker
@@ -65,3 +66,11 @@ that work with local files and generated native runtimes.
 The addon should avoid becoming a one-to-one port of Python Diffusers. When a
 workflow is added, first name the local openFrameworks use case, then choose
 the smallest request/config shape that can express it.
+
+## GAN Image Generation
+
+GAN image generators are part of this addon because they output images and share
+the same media, prompt/config, and openFrameworks pixel plumbing as diffusion
+workflows. Keep the first boundary focused on exported-generator inference or an
+explicit external bridge. Do not promise in-addon adversarial training until a
+small ggml training proof is validated.

@@ -1,6 +1,8 @@
 # ofxGgmlDiffusion
 
-`ofxGgmlDiffusion` is the companion addon for Stable Diffusion, SDXL, Flux-style diffusion, image-to-image, inpainting, and control/image conditioning workflows on top of `ofxGgmlCore`.
+`ofxGgmlDiffusion` is the companion addon for Stable Diffusion, SDXL, Flux-style
+diffusion, GAN-style image generation, image-to-image, inpainting, and
+control/image conditioning workflows on top of `ofxGgmlCore`.
 
 `ofxGgmlCore` stays the dependency. This addon owns diffusion-specific workflow code so core can stay small and boring.
 
@@ -93,6 +95,18 @@ Good ideas to mirror carefully:
 - adapters such as LoRA, ControlNet, and PhotoMaker should be typed request
   data
 - examples should show one complete workflow without becoming a model zoo
+
+## GAN Image Generation
+
+GANs for image generation belong here, not in `ofxGgmlMusic`. Treat them as a
+separate image-generation backend family beside diffusion: useful for exported
+generator inference, style-specific image synthesis, super-resolution, or
+image-to-image experiments.
+
+The stable path should start with inference from a known local generator graph
+or an external bridge. Full in-addon adversarial training should remain
+experimental until ggml training/autograd support is proven locally with focused
+tests.
 
 ## Example
 

@@ -24,11 +24,15 @@
   a separate addon.
 - Adopt Diffusers-inspired vocabulary for future pipelines, schedulers, model
   families, and adapters without taking a Python runtime dependency.
+- Define GAN-style image generation as an image backend family that belongs in
+  this addon, separate from music/audio generation.
 
 ## Next Milestones
 
 - Wire PhotoMaker into the native stable-diffusion.cpp bridge after confirming
   the installed C API fields.
+- Sketch a backend-family interface that can host diffusion, GAN, and external
+  image generation backends without changing `ofxGgmlCore`.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp
