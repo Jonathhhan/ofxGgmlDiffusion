@@ -133,6 +133,9 @@ The public API now has the first boring boundary for that work:
   helpers used by the dry-run trace
 - `ofxGgmlDiffusionPreviewTinyGanWeightUpdate()` previews one deterministic
   scalar update from those losses without writing trained weights
+- `ofxGgmlDiffusionApplyTinyGanPresetPreviewUpdate()` and
+  `scripts\train-tiny-gan.bat -WritePreviewPreset` can write an explicit
+  preview `.ofxggmlgan` preset while still keeping training dry-run-only
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 
@@ -161,6 +164,7 @@ scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
 scripts\create-tiny-gan-preset.bat
 scripts\create-tiny-gan-fixtures.bat -OutputPath ofxGgmlDiffusionGanExample\bin\data\datasets\tiny-fixtures -Count 8
 scripts\train-tiny-gan.bat -DryRun -Dataset C:\path\to\images -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-trained.ofxggmlgan -Epochs 2 -DryRunBatchesPerEpoch 3
+scripts\train-tiny-gan.bat -DryRun -Dataset ofxGgmlDiffusionGanExample\bin\data\datasets\tiny-fixtures -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-preview-trained.ofxggmlgan -WritePreviewPreset -Force
 scripts\run-gan-example.bat -DryRun
 scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\data\models\tiny-mlp.ofxggmlgan
 ```

@@ -98,4 +98,17 @@ Assert-Contains $output "Planned discriminator updates: 6" "Tiny GAN training dr
 Assert-Contains $output "Planned generator updates: 6" "Tiny GAN training dry-run"
 Assert-Contains $output "Dry run complete" "Tiny GAN training dry-run"
 
+Write-Step "Tiny GAN preview preset write"
+$previewPresetPath = Join-Path $scratchDir "tiny-preview-trained.ofxggmlgan"
+$output = & (Join-Path $scriptRoot "train-tiny-gan.ps1") -DryRun -Dataset $datasetPath -OutputPreset $previewPresetPath -Epochs 2 -BatchSize 8 -DryRunBatchesPerEpoch 3 -WritePreviewPreset -Force *>&1 |
+	ForEach-Object { $_.ToString() }
+
+Assert-Contains $output "Wrote preview preset: $previewPresetPath" "Tiny GAN preview preset write"
+Assert-Contains $output "Dry run complete; no weights were trained" "Tiny GAN preview preset write"
+if (!(Test-Path -LiteralPath $previewPresetPath -PathType Leaf)) {
+	throw "Tiny GAN preview preset was not written: $previewPresetPath"
+}
+Assert-Contains (Get-Content -LiteralPath $previewPresetPath) "architecture=tiny-mlp" "Tiny GAN preview preset file"
+Assert-Contains (Get-Content -LiteralPath $previewPresetPath) "w1Seed=" "Tiny GAN preview preset file"
+
 Write-Step "Launch dry-run smoke coverage passed"

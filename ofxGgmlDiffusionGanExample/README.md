@@ -14,6 +14,7 @@ shape used by the proof backend:
 ..\scripts\create-tiny-gan-preset.bat
 ..\scripts\create-tiny-gan-fixtures.bat -OutputPath bin\data\datasets\tiny-fixtures -Count 8
 ..\scripts\train-tiny-gan.bat -DryRun -Dataset C:\path\to\images -Epochs 2 -DryRunBatchesPerEpoch 3
+..\scripts\train-tiny-gan.bat -DryRun -Dataset bin\data\datasets\tiny-fixtures -OutputPreset bin\data\models\tiny-preview-trained.ofxggmlgan -WritePreviewPreset -Force
 ..\scripts\run-gan-example.bat -DryRun
 ..\scripts\run-gan-example.bat -Build -Generator bin\data\models\tiny-mlp.ofxggmlgan
 ```

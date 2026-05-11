@@ -286,6 +286,35 @@ int main() {
 		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
+	const auto mutatedPreset = ofxGgmlDiffusionApplyTinyGanPresetPreviewUpdate(preset, updatePreview);
+	if (mutatedPreset.version != preset.version ||
+		mutatedPreset.architecture != preset.architecture ||
+		mutatedPreset.latentSize != preset.latentSize ||
+		mutatedPreset.hiddenSize != preset.hiddenSize ||
+		mutatedPreset.w1Scale == preset.w1Scale ||
+		mutatedPreset.w2Scale == preset.w2Scale ||
+		mutatedPreset.w1Seed == preset.w1Seed ||
+		mutatedPreset.w2Seed == preset.w2Seed) {
+		std::cerr << "tiny GAN preset mutation preview failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	const std::string mutatedPresetPath = "tiny-gan-mutated-test.ofxggmlgan";
+	{
+		std::ofstream mutatedPresetFile(mutatedPresetPath);
+		mutatedPresetFile << ofxGgmlDiffusionSerializeTinyGanPreset(mutatedPreset);
+	}
+	ofxGgmlDiffusionTinyGanPreset loadedMutatedPreset;
+	std::string mutatedPresetError;
+	if (!ofxGgmlDiffusionLoadTinyGanPreset(mutatedPresetPath, loadedMutatedPreset, mutatedPresetError) ||
+		loadedMutatedPreset.w1Seed != mutatedPreset.w1Seed ||
+		loadedMutatedPreset.w2Seed != mutatedPreset.w2Seed) {
+		std::cerr << "tiny GAN mutated preset reload failed: " << mutatedPresetError << "\n";
+		std::remove(mutatedPresetPath.c_str());
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	std::remove(mutatedPresetPath.c_str());
 	const auto missingDatasetScan = ofxGgmlDiffusionScanTinyGanDataset("tiny-gan-missing-dataset-test");
 	if (missingDatasetScan.exists || missingDatasetScan.warnings.empty()) {
 		std::cerr << "missing tiny GAN dataset scan failed\n";

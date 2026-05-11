@@ -108,6 +108,21 @@ namespace {
 		}
 		return std::clamp(probability, 0.000001f, 0.999999f);
 	}
+
+	float clampPresetScale(float value) {
+		if (!std::isfinite(value)) {
+			return 0.01f;
+		}
+		return std::clamp(value, 0.001f, 2.0f);
+	}
+
+	std::uint32_t seedOffsetFromGradient(float gradient, std::uint32_t fallback) {
+		if (!std::isfinite(gradient)) {
+			return fallback;
+		}
+		const auto scaled = static_cast<std::uint32_t>(std::abs(gradient) * 100000.0f) + fallback;
+		return std::max<std::uint32_t>(1U, scaled);
+	}
 }
 
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionValidateTinyGanTraining(
@@ -334,6 +349,27 @@ ofxGgmlDiffusionTinyGanWeightUpdatePreview ofxGgmlDiffusionPreviewTinyGanWeightU
 	preview.updatedGeneratorWeight =
 		preview.initialGeneratorWeight - (preview.learningRate * preview.generatorGradient);
 	return preview;
+}
+
+ofxGgmlDiffusionTinyGanPreset ofxGgmlDiffusionApplyTinyGanPresetPreviewUpdate(
+	const ofxGgmlDiffusionTinyGanPreset& preset,
+	const ofxGgmlDiffusionTinyGanWeightUpdatePreview& update) {
+	auto mutated = preset;
+	const float discriminatorDelta =
+		update.updatedDiscriminatorWeight - update.initialDiscriminatorWeight;
+	const float generatorDelta =
+		update.updatedGeneratorWeight - update.initialGeneratorWeight;
+
+	mutated.w1Scale = clampPresetScale(preset.w1Scale + generatorDelta);
+	mutated.b1Scale = clampPresetScale(preset.b1Scale + generatorDelta * 0.25f);
+	mutated.w2Scale = clampPresetScale(preset.w2Scale + generatorDelta * 0.75f);
+	mutated.b2Scale = clampPresetScale(preset.b2Scale + generatorDelta * 0.25f + discriminatorDelta * 0.10f);
+	mutated.latentScale = clampPresetScale(preset.latentScale + generatorDelta * 0.10f);
+	mutated.w1Seed += seedOffsetFromGradient(update.generatorGradient, 11U);
+	mutated.b1Seed += seedOffsetFromGradient(update.generatorGradient, 17U);
+	mutated.w2Seed += seedOffsetFromGradient(update.discriminatorGradient, 23U);
+	mutated.b2Seed += seedOffsetFromGradient(update.discriminatorGradient, 29U);
+	return mutated;
 }
 
 std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(

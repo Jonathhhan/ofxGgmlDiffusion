@@ -118,4 +118,6 @@ surface; they clamp probabilities before applying log loss and keep
 discriminator and generator loss semantics in one tested place. The weight
 update preview intentionally mutates only scalar preview values, not model
 checkpoints, so the addon can test update direction before introducing a real
-trainable parameter format.
+trainable parameter format. The preset mutation helper applies that preview to
+the tiny `.ofxggmlgan` descriptor only when explicitly requested, preserving the
+dry-run boundary while proving the future checkpoint write path.

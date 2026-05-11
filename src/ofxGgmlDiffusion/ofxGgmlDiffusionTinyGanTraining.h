@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ofxGgmlDiffusionTinyGanBackend.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -145,6 +147,9 @@ ofxGgmlDiffusionTinyGanLossPair ofxGgmlDiffusionComputeTinyGanLossPair(
 ofxGgmlDiffusionTinyGanWeightUpdatePreview ofxGgmlDiffusionPreviewTinyGanWeightUpdate(
 	const ofxGgmlDiffusionTinyGanLossPair& loss,
 	float learningRate);
+ofxGgmlDiffusionTinyGanPreset ofxGgmlDiffusionApplyTinyGanPresetPreviewUpdate(
+	const ofxGgmlDiffusionTinyGanPreset& preset,
+	const ofxGgmlDiffusionTinyGanWeightUpdatePreview& update);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(
