@@ -50,6 +50,8 @@
   non-dry-run training.
 - Connect the toy update preview to a tiny preset/checkpoint mutation path while
   keeping file writes opt-in and tested.
+- Use the preview preset output in the GAN example run path as a selectable
+  local generator descriptor.
 
 ## Next Milestones
 
@@ -62,8 +64,8 @@
 - Implement a toy discriminator/training loop behind the tiny GAN training
   contract with real weight updates, then require repeatable fixture outputs
   before exposing non-dry-run training.
-- Use the preview preset output in the GAN example run path as a selectable
-  local generator descriptor.
+- Add a tiny GAN example UI panel that can switch between built-in, preset, and
+  preview-preset generator descriptors.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp

@@ -111,4 +111,25 @@ if (!(Test-Path -LiteralPath $previewPresetPath -PathType Leaf)) {
 Assert-Contains (Get-Content -LiteralPath $previewPresetPath) "architecture=tiny-mlp" "Tiny GAN preview preset file"
 Assert-Contains (Get-Content -LiteralPath $previewPresetPath) "w1Seed=" "Tiny GAN preview preset file"
 
+Write-Step "GAN example preview preset dry-run"
+$runPreviewDatasetPath = Join-Path $scratchDir "run-gan-preview-dataset"
+$runPreviewPresetPath = Join-Path $scratchDir "run-gan-preview.ofxggmlgan"
+if (Test-Path -LiteralPath $runPreviewDatasetPath) {
+	Remove-Item -LiteralPath $runPreviewDatasetPath -Recurse -Force
+}
+if (Test-Path -LiteralPath $runPreviewPresetPath) {
+	Remove-Item -LiteralPath $runPreviewPresetPath -Force
+}
+$output = & (Join-Path $scriptRoot "run-gan-example.ps1") -DryRun -PreviewPreset -PreviewDataset $runPreviewDatasetPath -PreviewPresetPath $runPreviewPresetPath -ForcePreviewPreset *>&1 |
+	ForEach-Object { $_.ToString() }
+
+Assert-Contains $output "Creating tiny GAN fixtures: $runPreviewDatasetPath" "GAN example preview preset dry-run"
+Assert-Contains $output "Writing tiny GAN preview preset: $runPreviewPresetPath" "GAN example preview preset dry-run"
+Assert-Contains $output "Using GAN generator: $runPreviewPresetPath" "GAN example preview preset dry-run"
+Assert-Contains $output "Executable:" "GAN example preview preset dry-run"
+Assert-NotContains $output "Starting ofxGgmlDiffusionGanExample" "GAN example preview preset dry-run"
+if (!(Test-Path -LiteralPath $runPreviewPresetPath -PathType Leaf)) {
+	throw "GAN example preview preset dry-run did not write preset: $runPreviewPresetPath"
+}
+
 Write-Step "Launch dry-run smoke coverage passed"
