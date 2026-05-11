@@ -8,7 +8,11 @@ proof. It produces pixels when ggml headers/libs are available through
 
 The built-in `builtin:tiny-mlp` generator is deterministic and not trained. You
 can also generate a tiny preset file that changes the deterministic seeds and
-shape used by the proof backend:
+shape used by the proof backend.
+
+Inside the example, use the ImGui panel to edit the prompt, create fixture
+images, write a preview preset, select the generator mode, and run the preview.
+The script path is still useful for repeatable setup and dry-run validation:
 
 ```powershell
 ..\scripts\create-tiny-gan-preset.bat
