@@ -32,6 +32,8 @@
   with dry-run launch script coverage.
 - Add `ofxGgmlDiffusionTinyGanBackend`, a fixed tiny ggml MLP generator proof
   that produces image pixels when Core's ggml runtime is installed.
+- Add `.ofxggmlgan` tiny preset loading plus scripts to create local preset
+  files without committing generated model assets.
 
 ## Next Milestones
 

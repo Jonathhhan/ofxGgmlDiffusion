@@ -62,4 +62,12 @@ Assert-Contains $output "Executable:" "GAN example dry-run"
 Assert-Contains $output "Output:" "GAN example dry-run"
 Assert-NotContains $output "Starting ofxGgmlDiffusionGanExample" "GAN example dry-run"
 
+Write-Step "Tiny GAN preset dry-run"
+$presetPath = Join-Path $scratchDir "tiny-mlp.ofxggmlgan"
+$output = & (Join-Path $scriptRoot "create-tiny-gan-preset.ps1") -DryRun -OutputPath $presetPath *>&1 |
+	ForEach-Object { $_.ToString() }
+
+Assert-Contains $output "Tiny GAN preset output: $presetPath" "Tiny GAN preset dry-run"
+Assert-Contains $output "Dry run complete" "Tiny GAN preset dry-run"
+
 Write-Step "Launch dry-run smoke coverage passed"

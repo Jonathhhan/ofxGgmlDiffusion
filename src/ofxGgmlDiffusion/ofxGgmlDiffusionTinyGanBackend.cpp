@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
+#include <map>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -47,6 +50,44 @@ namespace {
 		return stream.str();
 	}
 
+	std::string trim(const std::string& value) {
+		const auto first = value.find_first_not_of(" \t\r\n");
+		if (first == std::string::npos) {
+			return "";
+		}
+		const auto last = value.find_last_not_of(" \t\r\n");
+		return value.substr(first, last - first + 1);
+	}
+
+	bool startsWith(const std::string& value, const std::string& prefix) {
+		return value.size() >= prefix.size() &&
+			value.compare(0, prefix.size(), prefix) == 0;
+	}
+
+	int parseInt(const std::map<std::string, std::string>& values, const std::string& key, int fallback) {
+		const auto found = values.find(key);
+		if (found == values.end()) {
+			return fallback;
+		}
+		return std::stoi(found->second);
+	}
+
+	std::uint32_t parseSeed(const std::map<std::string, std::string>& values, const std::string& key, std::uint32_t fallback) {
+		const auto found = values.find(key);
+		if (found == values.end()) {
+			return fallback;
+		}
+		return static_cast<std::uint32_t>(std::stoul(found->second));
+	}
+
+	float parseFloat(const std::map<std::string, std::string>& values, const std::string& key, float fallback) {
+		const auto found = values.find(key);
+		if (found == values.end()) {
+			return fallback;
+		}
+		return std::stof(found->second);
+	}
+
 	float deterministicValue(std::uint32_t seed) {
 		seed ^= seed >> 16;
 		seed *= 0x7feb352dU;
@@ -83,6 +124,119 @@ namespace {
 		}
 	}
 #endif
+}
+
+ofxGgmlDiffusionTinyGanPreset ofxGgmlDiffusionMakeDefaultTinyGanPreset() {
+	return ofxGgmlDiffusionTinyGanPreset{};
+}
+
+bool ofxGgmlDiffusionLoadTinyGanPreset(
+	const std::string& path,
+	ofxGgmlDiffusionTinyGanPreset& preset,
+	std::string& error) {
+	preset = ofxGgmlDiffusionMakeDefaultTinyGanPreset();
+	error.clear();
+
+	if (path.empty() || startsWith(path, "builtin:")) {
+		return true;
+	}
+
+	std::ifstream input(path);
+	if (!input) {
+		error = "could not open tiny GAN preset: " + path;
+		return false;
+	}
+
+	std::map<std::string, std::string> values;
+	std::string line;
+	int lineNumber = 0;
+	while (std::getline(input, line)) {
+		++lineNumber;
+		const auto comment = line.find('#');
+		if (comment != std::string::npos) {
+			line = line.substr(0, comment);
+		}
+		line = trim(line);
+		if (line.empty()) {
+			continue;
+		}
+		const auto equals = line.find('=');
+		if (equals == std::string::npos) {
+			error = "invalid tiny GAN preset line " + std::to_string(lineNumber) + ": " + line;
+			return false;
+		}
+		values[trim(line.substr(0, equals))] = trim(line.substr(equals + 1));
+	}
+
+	try {
+		preset.version = parseInt(values, "version", preset.version);
+		const auto architecture = values.find("architecture");
+		if (architecture != values.end()) {
+			preset.architecture = architecture->second;
+		}
+		preset.latentSize = parseInt(values, "latentSize", preset.latentSize);
+		preset.hiddenSize = parseInt(values, "hiddenSize", preset.hiddenSize);
+		preset.w1Seed = parseSeed(values, "w1Seed", preset.w1Seed);
+		preset.b1Seed = parseSeed(values, "b1Seed", preset.b1Seed);
+		preset.w2Seed = parseSeed(values, "w2Seed", preset.w2Seed);
+		preset.b2Seed = parseSeed(values, "b2Seed", preset.b2Seed);
+		preset.latentScale = parseFloat(values, "latentScale", preset.latentScale);
+		preset.w1Scale = parseFloat(values, "w1Scale", preset.w1Scale);
+		preset.b1Scale = parseFloat(values, "b1Scale", preset.b1Scale);
+		preset.w2Scale = parseFloat(values, "w2Scale", preset.w2Scale);
+		preset.b2Scale = parseFloat(values, "b2Scale", preset.b2Scale);
+	} catch (const std::exception& exception) {
+		error = "invalid tiny GAN preset value: ";
+		error += exception.what();
+		return false;
+	}
+
+	if (preset.version != 1) {
+		error = "unsupported tiny GAN preset version: " + std::to_string(preset.version);
+		return false;
+	}
+	if (preset.architecture != "tiny-mlp") {
+		error = "unsupported tiny GAN architecture: " + preset.architecture;
+		return false;
+	}
+	if (preset.latentSize < 8 || preset.latentSize > 1024) {
+		error = "tiny GAN latentSize must be between 8 and 1024";
+		return false;
+	}
+	if (preset.hiddenSize < 8 || preset.hiddenSize > 512) {
+		error = "tiny GAN hiddenSize must be between 8 and 512";
+		return false;
+	}
+	if (!std::isfinite(preset.latentScale) ||
+		!std::isfinite(preset.w1Scale) ||
+		!std::isfinite(preset.b1Scale) ||
+		!std::isfinite(preset.w2Scale) ||
+		!std::isfinite(preset.b2Scale)) {
+		error = "tiny GAN scales must be finite";
+		return false;
+	}
+
+	return true;
+}
+
+std::string ofxGgmlDiffusionSerializeTinyGanPreset(
+	const ofxGgmlDiffusionTinyGanPreset& preset) {
+	std::ostringstream stream;
+	stream << "# ofxGgmlDiffusion tiny GAN preset v1\n";
+	stream << "version=" << preset.version << "\n";
+	stream << "architecture=" << preset.architecture << "\n";
+	stream << "latentSize=" << preset.latentSize << "\n";
+	stream << "hiddenSize=" << preset.hiddenSize << "\n";
+	stream << "w1Seed=" << preset.w1Seed << "\n";
+	stream << "b1Seed=" << preset.b1Seed << "\n";
+	stream << "w2Seed=" << preset.w2Seed << "\n";
+	stream << "b2Seed=" << preset.b2Seed << "\n";
+	stream << "latentScale=" << preset.latentScale << "\n";
+	stream << "w1Scale=" << preset.w1Scale << "\n";
+	stream << "b1Scale=" << preset.b1Scale << "\n";
+	stream << "w2Scale=" << preset.w2Scale << "\n";
+	stream << "b2Scale=" << preset.b2Scale << "\n";
+	return stream.str();
 }
 
 std::string ofxGgmlDiffusionTinyGanBackend::getBackendName() const {
@@ -134,8 +288,16 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionTinyGanBackend::generate(
 	const int width = request.width;
 	const int height = request.height;
 	const int channels = 3;
-	const int latentSize = std::max(8, std::min(1024, request.gan.latentSize));
-	const int hiddenSize = 96;
+	ofxGgmlDiffusionTinyGanPreset preset;
+	std::string presetError;
+	if (!ofxGgmlDiffusionLoadTinyGanPreset(request.gan.generatorPath, preset, presetError)) {
+		return makeTinyGanError(presetError);
+	}
+	if (request.gan.generatorPath.empty() || startsWith(request.gan.generatorPath, "builtin:")) {
+		preset.latentSize = std::max(8, std::min(1024, request.gan.latentSize));
+	}
+	const int latentSize = preset.latentSize;
+	const int hiddenSize = preset.hiddenSize;
 	const int outputSize = width * height * channels;
 	const std::int64_t seed = request.seed >= 0 ? request.seed : 1;
 
@@ -162,11 +324,11 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionTinyGanBackend::generate(
 	struct ggml_tensor* w2 = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, hiddenSize, outputSize);
 	struct ggml_tensor* b2 = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, outputSize);
 
-	fillTensor(latent, static_cast<std::uint32_t>(seed), 1.0f);
-	fillTensor(w1, 17U, 0.18f);
-	fillTensor(b1, 29U, 0.08f);
-	fillTensor(w2, 43U, 0.09f);
-	fillTensor(b2, 71U, 0.03f);
+	fillTensor(latent, static_cast<std::uint32_t>(seed), preset.latentScale * request.gan.truncation);
+	fillTensor(w1, preset.w1Seed, preset.w1Scale);
+	fillTensor(b1, preset.b1Seed, preset.b1Scale);
+	fillTensor(w2, preset.w2Seed, preset.w2Scale);
+	fillTensor(b2, preset.b2Seed, preset.b2Scale);
 
 	struct ggml_tensor* hidden = ggml_tanh(ctx, ggml_add(ctx, ggml_mul_mat(ctx, w1, latent), b1));
 	struct ggml_tensor* output = ggml_tanh(ctx, ggml_add(ctx, ggml_mul_mat(ctx, w2, hidden), b2));

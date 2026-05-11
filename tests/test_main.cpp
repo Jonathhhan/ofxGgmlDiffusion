@@ -4,6 +4,8 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
+#include <cstdio>
+#include <fstream>
 #include <iostream>
 
 int main() {
@@ -109,6 +111,25 @@ int main() {
 		std::cerr << "GAN request without generator path passed validation\n";
 		return 1;
 	}
+
+	auto preset = ofxGgmlDiffusionMakeDefaultTinyGanPreset();
+	preset.latentSize = 64;
+	preset.hiddenSize = 32;
+	const std::string presetPath = "tiny-gan-test.ofxggmlgan";
+	{
+		std::ofstream presetFile(presetPath);
+		presetFile << ofxGgmlDiffusionSerializeTinyGanPreset(preset);
+	}
+	ofxGgmlDiffusionTinyGanPreset loadedPreset;
+	std::string presetError;
+	if (!ofxGgmlDiffusionLoadTinyGanPreset(presetPath, loadedPreset, presetError) ||
+		loadedPreset.latentSize != 64 ||
+		loadedPreset.hiddenSize != 32 ||
+		loadedPreset.architecture != "tiny-mlp") {
+		std::cerr << "tiny GAN preset load failed: " << presetError << "\n";
+		std::remove(presetPath.c_str());
+		return 1;
+	}
 	auto ganBackend = ofxGgmlMakeUnavailableDiffusionImageGenerationBackend(
 		ofxGgmlDiffusionBackendFamily::GAN,
 		"gan");
@@ -151,7 +172,7 @@ int main() {
 		auto tinyRequest = ganRequest;
 		tinyRequest.width = 64;
 		tinyRequest.height = 64;
-		tinyRequest.gan.generatorPath = "builtin:tiny-mlp";
+		tinyRequest.gan.generatorPath = presetPath;
 		const auto tinyResult = tinyGan.generate(tinyRequest);
 		if (!tinyResult ||
 			tinyResult.images.empty() ||
@@ -163,8 +184,10 @@ int main() {
 		}
 	} else if (tinySetup.isOk() || tinyGan.isLoaded()) {
 		std::cerr << "unavailable tiny GAN backend unexpectedly set up\n";
+		std::remove(presetPath.c_str());
 		return 1;
 	}
+	std::remove(presetPath.c_str());
 
 	ofxGgmlDiffusionImage image;
 	image.width = 2;

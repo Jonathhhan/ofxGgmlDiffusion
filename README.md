@@ -113,6 +113,8 @@ The public API now has the first boring boundary for that work:
   future diffusion, GAN, or external image runtimes
 - `ofxGgmlDiffusionTinyGanBackend` is the first real ggml proof: a fixed tiny
   MLP generator that runs when Core's ggml headers/libs are installed
+- `scripts\create-tiny-gan-preset.*` writes a small `.ofxggmlgan` preset file
+  for testing exported-generator loading without committing model binaries
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 
@@ -138,8 +140,9 @@ It reports a clear unavailable-backend result until a real GAN runtime is wired.
 ```powershell
 scripts\run-diffusion-example.bat -DryRun
 scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
+scripts\create-tiny-gan-preset.bat
 scripts\run-gan-example.bat -DryRun
-scripts\run-gan-example.bat -Build -Generator C:\path\to\generator.gguf
+scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\data\models\tiny-mlp.ofxggmlgan
 ```
 
 ## Dependencies

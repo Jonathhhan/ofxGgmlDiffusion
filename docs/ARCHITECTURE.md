@@ -87,3 +87,9 @@ MLP generator with ggml tensors and returns RGB pixels through the same result
 type as diffusion. It intentionally does not load PyTorch weights or train a
 discriminator; those are later milestones after a small exported generator
 format is chosen.
+
+The `.ofxggmlgan` preset format is intentionally tiny: key/value text that
+selects the `tiny-mlp` architecture, latent/hidden sizes, deterministic seeds,
+and scales. It is not a trained weight format. It exists to prove that examples
+can load a user-provided generator descriptor before the addon grows a real
+tensor checkpoint format.
