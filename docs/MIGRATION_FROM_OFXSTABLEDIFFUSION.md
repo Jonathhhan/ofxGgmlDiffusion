@@ -25,11 +25,12 @@ experiments in one repository.
 | request validation helpers | `ofxGgmlDiffusionUtils::validate()` |
 | LoRA descriptors | `ofxGgmlDiffusionLora` |
 | ControlNet descriptors | `ofxGgmlDiffusionControlImage` |
-| native wrapper and worker thread | future bridge/backend layer |
+| native wrapper | `ofxGgmlDiffusionNativeBackend` first text-to-image bridge |
+| worker thread and cancellation | future backend layer |
 | large GUI and video workflows | later focused companion examples |
 
-The next migration step after generated runtime setup is one bridge backend that
-accepts `ofxGgmlDiffusionRequest`.
+The first native bridge now accepts `ofxGgmlDiffusionRequest` for text-to-image.
+The next migration step is image saving, then threaded/cancellable generation.
 
 `scripts/build-stable-diffusion.*` now owns the generated runtime setup path.
 It clones/builds/installs upstream locally only when the user runs it, points

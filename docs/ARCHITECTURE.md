@@ -15,6 +15,7 @@ No dependency should point from `ofxGgmlCore` back to `ofxGgmlDiffusion`.
 ## Owned Here
 
 - diffusion-specific request/result helpers
+- the opt-in stable-diffusion.cpp native bridge
 - model-specific preprocessing and postprocessing
 - focused root-level examples
 - local media/model workflow documentation
@@ -24,3 +25,11 @@ No dependency should point from `ofxGgmlCore` back to `ofxGgmlDiffusion`.
 - ggml runtime setup and backend selection
 - generic tensor, graph, model metadata, and result types
 - unrelated companion workflows
+
+## Native Bridge Boundary
+
+`ofxGgmlDiffusionNativeBackend` is deliberately narrow. It exposes setup,
+loaded-state checks, and text-to-image generation against generated
+stable-diffusion.cpp binaries. Without `OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`
+and the generated native headers/libraries, it remains an unavailable stub so a
+fresh checkout can still compile and validate.

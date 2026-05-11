@@ -9,6 +9,8 @@ common:
 	ADDON_DEPENDENCIES += ofxGgmlCore
 	ADDON_INCLUDES += src
 	ADDON_INCLUDES += libs/stable-diffusion/include
+	# Native stable-diffusion.cpp bridge is opt-in after scripts/build-stable-diffusion.*:
+	# ADDON_CFLAGS += -DOFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION
 	ADDON_SOURCES_EXCLUDE += build/%
 	ADDON_SOURCES_EXCLUDE += libs/stable-diffusion/.source/%
 	ADDON_SOURCES_EXCLUDE += libs/stable-diffusion/build/%
@@ -21,3 +23,15 @@ common:
 	ADDON_INCLUDES_EXCLUDE += libs/stable-diffusion/build*/%
 	ADDON_INCLUDES_EXCLUDE += libs/*/build/%
 	ADDON_INCLUDES_EXCLUDE += libs/*/build*/%
+
+vs:
+	# Enable with OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION after local runtime setup:
+	# ADDON_LIBS += libs/stable-diffusion/lib/stable-diffusion.lib
+
+linux64:
+	# Enable with OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION after local runtime setup:
+	# ADDON_LIBS += libs/stable-diffusion/lib/libstable-diffusion.a
+
+osx:
+	# Enable with OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION after local runtime setup:
+	# ADDON_LIBS += libs/stable-diffusion/lib/libstable-diffusion.a

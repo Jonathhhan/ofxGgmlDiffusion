@@ -28,7 +28,7 @@ int main() {
 	}
 
 	const auto valid = ofxGgmlDiffusionUtils::validate(request);
-	if (!valid) {
+	if (!valid.isOk()) {
 		std::cerr << "valid request failed validation\n";
 		return 1;
 	}
@@ -36,7 +36,7 @@ int main() {
 	auto invalid = ofxGgmlDiffusionUtils::makeTextToImageRequest("  a   cat  ");
 	invalid.width = 513;
 	const auto invalidResult = ofxGgmlDiffusionUtils::validate(invalid);
-	if (invalidResult) {
+	if (!invalidResult.isError()) {
 		std::cerr << "invalid dimension passed validation\n";
 		return 1;
 	}
@@ -47,8 +47,38 @@ int main() {
 
 	auto inpaint = request;
 	inpaint.mode = ofxGgmlDiffusionMode::Inpainting;
-	if (ofxGgmlDiffusionUtils::validate(inpaint)) {
+	if (ofxGgmlDiffusionUtils::validate(inpaint).isOk()) {
 		std::cerr << "inpainting without images passed validation\n";
+		return 1;
+	}
+
+	ofxGgmlDiffusionImage image;
+	image.width = 2;
+	image.height = 2;
+	image.channels = 3;
+	image.pixels.resize(12);
+	if (!image.isAllocated() || image.getByteSize() != 12) {
+		std::cerr << "image allocation helpers failed\n";
+		return 1;
+	}
+
+	ofxGgmlDiffusionNativeBackend backend;
+	if (backend.getBackendName() != "stable-diffusion.cpp") {
+		std::cerr << "unexpected native backend name\n";
+		return 1;
+	}
+	if (backend.isLoaded()) {
+		std::cerr << "native backend reported loaded before setup\n";
+		return 1;
+	}
+	const auto setupResult = backend.setup(ofxGgmlDiffusionContextSettings{});
+	if (setupResult.isOk()) {
+		std::cerr << "native backend setup succeeded without model/runtime\n";
+		return 1;
+	}
+	const auto generateResult = backend.generate(request);
+	if (generateResult.isOk()) {
+		std::cerr << "native backend generated without setup\n";
 		return 1;
 	}
 

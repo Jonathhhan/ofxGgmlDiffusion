@@ -36,6 +36,18 @@ against its own vendored ggml copy.
 Generated source, build trees, libraries, executables, models, and output media
 stay out of git.
 
+## Native Backend
+
+`ofxGgmlDiffusionNativeBackend` is the first bridge to the generated
+`stable-diffusion.cpp` runtime. It compiles as a clear unavailable stub until
+the native runtime is generated and the app build defines
+`OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`.
+
+The first bridge intentionally supports text-to-image only and returns generated
+pixels in `ofxGgmlDiffusionResult::images`. Image-to-image, inpainting, image
+saving helpers, and threaded/cancellable generation should be layered on after
+this boundary stays boring.
+
 ## Example
 
 `ofxGgmlDiffusionPromptExample` is a root-level prompt conditioning smoke test. Generate it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and `ofxGgmlCore`.

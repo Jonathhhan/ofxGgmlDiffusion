@@ -11,10 +11,14 @@
   artifacts.
 - Add generated `stable-diffusion.cpp` setup/build scripts with dry-run
   validation, defaulting to ggml from sibling `ofxGgmlCore`.
+- Connect the first opt-in stable-diffusion.cpp bridge adapter for
+  text-to-image, including unavailable-runtime test coverage.
 
 ## Next Milestones
 
-- Connect the first stable-diffusion.cpp bridge adapter.
-- Add one useful openFrameworks example that runs with user-provided assets.
+- Add one useful openFrameworks example that runs text-to-image with
+  user-provided model assets.
+- Add image saving helpers for generated `ofxGgmlDiffusionImage` data.
+- Add threaded/cancellable generation around the native bridge.
 - Add focused tests around request/result helpers.
 - Document the `clone -> setup -> run` path from a new user's point of view.

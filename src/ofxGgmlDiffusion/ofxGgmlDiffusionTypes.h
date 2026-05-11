@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 #include <limits>
 #include <string>
 #include <vector>
@@ -54,6 +55,21 @@ struct ofxGgmlDiffusionControlImage {
 	}
 };
 
+struct ofxGgmlDiffusionImage {
+	int width = 0;
+	int height = 0;
+	int channels = 0;
+	std::vector<std::uint8_t> pixels;
+
+	bool isAllocated() const {
+		return width > 0 && height > 0 && channels > 0 && !pixels.empty();
+	}
+
+	std::size_t getByteSize() const {
+		return pixels.size();
+	}
+};
+
 struct ofxGgmlDiffusionContextSettings {
 	std::string modelPath;
 	std::string diffusionModelPath;
@@ -104,10 +120,19 @@ struct ofxGgmlDiffusionResult {
 	std::string text;
 	std::string error;
 	std::string outputPath;
+	std::vector<ofxGgmlDiffusionImage> images;
 	std::vector<std::string> imagePaths;
 	std::vector<std::string> references;
 	float elapsedMs = 0.0f;
 	std::int64_t seed = -1;
+
+	bool isOk() const {
+		return success;
+	}
+
+	bool isError() const {
+		return !success;
+	}
 
 	explicit operator bool() const {
 		return success;
@@ -118,6 +143,14 @@ struct ofxGgmlDiffusionValidationResult {
 	bool success = true;
 	std::vector<std::string> errors;
 	std::vector<std::string> warnings;
+
+	bool isOk() const {
+		return success;
+	}
+
+	bool isError() const {
+		return !success;
+	}
 
 	explicit operator bool() const {
 		return success;
