@@ -47,8 +47,13 @@ The first bridge intentionally supports text-to-image only and returns generated
 pixels in `ofxGgmlDiffusionResult::images`. Use
 `ofxGgmlDiffusionImageUtils::toPixels()` or `saveFirstImage()` to display or
 save those pixels from an openFrameworks app. Image-to-image, inpainting, and
-threaded/cancellable generation should be layered on after this boundary stays
-boring.
+deeper native progress integration should be layered on after this boundary
+stays boring.
+
+`ofxGgmlDiffusionAsyncRunner` wraps the native backend in a worker thread for
+openFrameworks examples. `cancel()` marks the pending result as cancelled once
+stable-diffusion.cpp returns control; the current C API path does not interrupt
+an in-flight sampling step.
 
 ## Example
 
@@ -56,6 +61,8 @@ boring.
 it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and
 `ofxGgmlCore`, set `OFXGGML_DIFFUSION_MODEL` or place a model at
 `bin/data/models/model.safetensors`, then press `R` to run one generation.
+The example runs generation on a worker thread; press `C` to cancel the pending
+result.
 
 ```powershell
 scripts\run-diffusion-example.bat -DryRun

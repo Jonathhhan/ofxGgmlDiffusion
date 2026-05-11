@@ -1,3 +1,4 @@
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
@@ -80,6 +81,32 @@ int main() {
 	const auto generateResult = backend.generate(request);
 	if (generateResult.isOk()) {
 		std::cerr << "native backend generated without setup\n";
+		return 1;
+	}
+
+	ofxGgmlDiffusionAsyncRunner runner;
+	if (runner.getState() != ofxGgmlDiffusionTaskState::Idle ||
+		ofxGgmlDiffusionGetTaskStateName(runner.getState()) != "idle") {
+		std::cerr << "async runner did not start idle\n";
+		return 1;
+	}
+	const auto startResult = runner.start(ofxGgmlDiffusionContextSettings{}, request);
+	if (!startResult.isOk()) {
+		std::cerr << "async runner did not start\n";
+		return 1;
+	}
+	runner.wait();
+	if (!runner.isDone() || runner.getState() != ofxGgmlDiffusionTaskState::Failed) {
+		std::cerr << "async runner did not report failed setup\n";
+		return 1;
+	}
+	ofxGgmlDiffusionResult asyncResult;
+	if (!runner.consumeResult(asyncResult)) {
+		std::cerr << "async runner did not expose result\n";
+		return 1;
+	}
+	if (asyncResult.isOk() || runner.hasResult()) {
+		std::cerr << "async runner result consumption failed\n";
 		return 1;
 	}
 

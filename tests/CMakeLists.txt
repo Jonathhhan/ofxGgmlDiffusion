@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(ofxGgmlDiffusion_tests
 	test_main.cpp
+	../src/ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionUtils.cpp)
 

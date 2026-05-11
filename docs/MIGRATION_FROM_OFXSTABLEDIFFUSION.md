@@ -26,12 +26,13 @@ experiments in one repository.
 | LoRA descriptors | `ofxGgmlDiffusionLora` |
 | ControlNet descriptors | `ofxGgmlDiffusionControlImage` |
 | native wrapper | `ofxGgmlDiffusionNativeBackend` first text-to-image bridge |
-| worker thread and cancellation | future backend layer |
+| worker thread and cancellation | `ofxGgmlDiffusionAsyncRunner` first non-blocking layer |
 | large GUI and video workflows | later focused companion examples |
 
 The first native bridge now accepts `ofxGgmlDiffusionRequest` for text-to-image
-and image utility helpers save/display generated pixel data. The next migration
-step is threaded/cancellable generation.
+and image utility helpers save/display generated pixel data. Async generation
+keeps examples responsive, with cancellation applied when stable-diffusion.cpp
+returns control.
 
 `scripts/build-stable-diffusion.*` now owns the generated runtime setup path.
 It clones/builds/installs upstream locally only when the user runs it, points

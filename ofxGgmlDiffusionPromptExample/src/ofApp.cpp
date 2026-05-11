@@ -27,44 +27,62 @@ void ofApp::setup() {
 void ofApp::keyPressed(int key) {
 	if (key == 'r' || key == 'R') {
 		runGeneration();
+	} else if (key == 'c' || key == 'C') {
+		runner.cancel();
+		status = "cancelling";
+		detail = "Waiting for stable-diffusion.cpp to return control";
+	}
+}
+
+void ofApp::update() {
+	ofxGgmlDiffusionResult result;
+	if (runner.consumeResult(result)) {
+		applyResult(result);
+	} else if (runner.isRunning()) {
+		status = runner.getStatus();
 	}
 }
 
 void ofApp::runGeneration() {
-	status = "setting up native backend";
-	ofLogNotice("ofxGgmlDiffusionPromptExample") << status;
-
-	auto setupResult = backend.setup(settings);
-	if (!setupResult) {
-		status = "setup failed";
-		detail = setupResult.error;
-		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
+	if (runner.isRunning()) {
+		detail = "Generation is already running";
 		return;
 	}
 
-	status = "generating image";
+	status = "starting";
 	ofLogNotice("ofxGgmlDiffusionPromptExample") << ofxGgmlDiffusionUtils::describe(request);
-	auto result = backend.generate(request);
+	auto startResult = runner.start(settings, request);
+	if (!startResult) {
+		status = "start failed";
+		detail = startResult.error;
+		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
+		return;
+	}
+	detail = "Running on worker thread; press C to cancel the pending result";
+}
+
+void ofApp::applyResult(const ofxGgmlDiffusionResult& result) {
 	if (!result) {
-		status = "generation failed";
+		status = ofxGgmlDiffusionGetTaskStateName(runner.getState());
 		detail = result.error;
 		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
 		return;
 	}
 
-	if (!ofxGgmlDiffusionImageUtils::saveFirstImage(result, request.outputPath)) {
+	auto savedResult = result;
+	if (!ofxGgmlDiffusionImageUtils::saveFirstImage(savedResult, request.outputPath)) {
 		status = "save failed";
-		detail = result.error;
+		detail = savedResult.error;
 		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
 		return;
 	}
 
 	ofPixels pixels;
-	if (ofxGgmlDiffusionImageUtils::toPixels(result.images.front(), pixels)) {
+	if (ofxGgmlDiffusionImageUtils::toPixels(savedResult.images.front(), pixels)) {
 		texture.loadData(pixels);
 	}
 	status = "complete";
-	detail = "Saved " + result.outputPath + " in " + ofToString(result.elapsedMs, 0) + " ms";
+	detail = "Saved " + savedResult.outputPath + " in " + ofToString(savedResult.elapsedMs, 0) + " ms";
 	ofLogNotice("ofxGgmlDiffusionPromptExample") << detail;
 }
 
@@ -102,7 +120,7 @@ void ofApp::draw() {
 	ofDrawBitmapString("model: " + (settings.modelPath.empty() ? "(unset)" : settings.modelPath), 32, 108);
 	ofDrawBitmapString("status: " + status, 32, 138);
 	ofDrawBitmapString(detail, 32, 168);
-	ofDrawBitmapString("R run", 32, 198);
+	ofDrawBitmapString("R run   C cancel", 32, 198);
 	if (texture.isAllocated()) {
 		const float maxSize = 512.0f;
 		const float scale = std::min(maxSize / texture.getWidth(), maxSize / texture.getHeight());

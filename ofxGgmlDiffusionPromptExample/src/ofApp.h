@@ -6,6 +6,7 @@
 class ofApp : public ofBaseApp {
 public:
 	void setup() override;
+	void update() override;
 	void keyPressed(int key) override;
 	void draw() override;
 
@@ -13,8 +14,9 @@ private:
 	void runGeneration();
 	std::string findModelPath() const;
 	std::string getOutputPath() const;
+	void applyResult(const ofxGgmlDiffusionResult& result);
 
-	ofxGgmlDiffusionNativeBackend backend;
+	ofxGgmlDiffusionAsyncRunner runner;
 	ofxGgmlDiffusionContextSettings settings;
 	ofxGgmlDiffusionRequest request;
 	ofTexture texture;

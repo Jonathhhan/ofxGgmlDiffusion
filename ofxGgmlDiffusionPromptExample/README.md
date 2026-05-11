@@ -11,8 +11,8 @@ The native runtime is opt-in. Build it first:
 Then point the example at a local model with `OFXGGML_DIFFUSION_MODEL`, or place
 one at `bin/data/models/model.safetensors`.
 
-Press `R` to run one blocking text-to-image request. Output is saved under
-`bin/data/outputs`.
+Press `R` to run one text-to-image request on a worker thread. Press `C` to
+cancel the pending result. Output is saved under `bin/data/outputs`.
 
 ```powershell
 ..\scripts\run-diffusion-example.bat -DryRun

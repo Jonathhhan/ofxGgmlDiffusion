@@ -18,9 +18,12 @@
   accepts a user-provided local model.
 - Add generated-project build/run scripts plus launch dry-run validation for
   the text-to-image example.
+- Add threaded generation with result-level cancellation around the native
+  bridge.
 
 ## Next Milestones
 
-- Add threaded/cancellable generation around the native bridge.
+- Add native progress reporting once there is a reliable stable-diffusion.cpp
+  callback path.
 - Add focused tests around request/result helpers.
 - Document the `clone -> setup -> run` path from a new user's point of view.
