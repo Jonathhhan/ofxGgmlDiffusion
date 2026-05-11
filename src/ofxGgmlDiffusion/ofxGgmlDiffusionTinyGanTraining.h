@@ -77,6 +77,16 @@ struct ofxGgmlDiffusionTinyGanLossPair {
 	float generatorLoss = 0.0f;
 };
 
+struct ofxGgmlDiffusionTinyGanWeightUpdatePreview {
+	float initialDiscriminatorWeight = 0.0f;
+	float initialGeneratorWeight = 0.0f;
+	float discriminatorGradient = 0.0f;
+	float generatorGradient = 0.0f;
+	float updatedDiscriminatorWeight = 0.0f;
+	float updatedGeneratorWeight = 0.0f;
+	float learningRate = 0.0f;
+};
+
 struct ofxGgmlDiffusionTinyGanTrainingResult {
 	bool success = false;
 	std::string text;
@@ -90,6 +100,7 @@ struct ofxGgmlDiffusionTinyGanTrainingResult {
 	float learningRate = 0.0f;
 	float finalDiscriminatorLoss = 0.0f;
 	float finalGeneratorLoss = 0.0f;
+	ofxGgmlDiffusionTinyGanWeightUpdatePreview updatePreview;
 	ofxGgmlDiffusionTinyGanDatasetScan dataset;
 	std::vector<std::string> warnings;
 	std::vector<ofxGgmlDiffusionTinyGanTrainingStep> steps;
@@ -131,6 +142,9 @@ ofxGgmlDiffusionTinyGanLossPair ofxGgmlDiffusionComputeTinyGanLossPair(
 	float realProbability,
 	float fakeProbability,
 	float generatorFakeProbability);
+ofxGgmlDiffusionTinyGanWeightUpdatePreview ofxGgmlDiffusionPreviewTinyGanWeightUpdate(
+	const ofxGgmlDiffusionTinyGanLossPair& loss,
+	float learningRate);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(

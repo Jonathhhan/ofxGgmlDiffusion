@@ -320,6 +320,22 @@ ofxGgmlDiffusionTinyGanLossPair ofxGgmlDiffusionComputeTinyGanLossPair(
 	return loss;
 }
 
+ofxGgmlDiffusionTinyGanWeightUpdatePreview ofxGgmlDiffusionPreviewTinyGanWeightUpdate(
+	const ofxGgmlDiffusionTinyGanLossPair& loss,
+	float learningRate) {
+	ofxGgmlDiffusionTinyGanWeightUpdatePreview preview;
+	preview.initialDiscriminatorWeight = 0.125f;
+	preview.initialGeneratorWeight = -0.075f;
+	preview.learningRate = isFinitePositive(learningRate) ? learningRate : 0.001f;
+	preview.discriminatorGradient = loss.fakeLoss - loss.realLoss;
+	preview.generatorGradient = -loss.generatorLoss;
+	preview.updatedDiscriminatorWeight =
+		preview.initialDiscriminatorWeight - (preview.learningRate * preview.discriminatorGradient);
+	preview.updatedGeneratorWeight =
+		preview.initialGeneratorWeight - (preview.learningRate * preview.generatorGradient);
+	return preview;
+}
+
 std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(
 	const ofxGgmlDiffusionTinyGanImageSample& sample) {
 	std::vector<float> normalized;
@@ -446,6 +462,11 @@ ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(
 	if (!result.steps.empty()) {
 		result.finalDiscriminatorLoss = result.steps.back().discriminatorLoss;
 		result.finalGeneratorLoss = result.steps.back().generatorLoss;
+		const auto finalLoss = ofxGgmlDiffusionComputeTinyGanLossPair(
+			result.steps.back().realProbability,
+			result.steps.back().fakeProbability,
+			result.steps.back().fakeProbability);
+		result.updatePreview = ofxGgmlDiffusionPreviewTinyGanWeightUpdate(finalLoss, settings.learningRate);
 	}
 
 	std::ostringstream text;
@@ -469,6 +490,8 @@ ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(
 	text << "learning rate: " << settings.learningRate << "\n";
 	text << "final dry-run discriminator loss: " << result.finalDiscriminatorLoss << "\n";
 	text << "final dry-run generator loss: " << result.finalGeneratorLoss << "\n";
+	text << "preview discriminator weight: " << result.updatePreview.updatedDiscriminatorWeight << "\n";
+	text << "preview generator weight: " << result.updatePreview.updatedGeneratorWeight << "\n";
 	text << "status: validated planning only; no weights were trained";
 	result.text = text.str();
 	return result;

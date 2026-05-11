@@ -266,13 +266,23 @@ int main() {
 		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
-	const auto lossPair = ofxGgmlDiffusionComputeTinyGanLossPair(0.8f, 0.2f, 0.7f);
+	const auto lossPair = ofxGgmlDiffusionComputeTinyGanLossPair(0.8f, 0.4f, 0.7f);
 	if (lossPair.realLoss <= 0.0f ||
 		lossPair.fakeLoss <= 0.0f ||
 		lossPair.discriminatorLoss <= 0.0f ||
 		lossPair.generatorLoss <= 0.0f ||
 		lossPair.generatorLoss >= ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.3f, true)) {
 		std::cerr << "tiny GAN loss pair failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	const auto updatePreview = ofxGgmlDiffusionPreviewTinyGanWeightUpdate(lossPair, 0.01f);
+	if (updatePreview.learningRate != 0.01f ||
+		updatePreview.discriminatorGradient == 0.0f ||
+		updatePreview.generatorGradient >= 0.0f ||
+		updatePreview.updatedDiscriminatorWeight == updatePreview.initialDiscriminatorWeight ||
+		updatePreview.updatedGeneratorWeight <= updatePreview.initialGeneratorWeight) {
+		std::cerr << "tiny GAN weight update preview failed\n";
 		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
@@ -305,7 +315,10 @@ int main() {
 		trainingPlan.dataset.unsupportedFileCount != 1 ||
 		trainingPlan.steps.size() != 6 ||
 		trainingPlan.finalDiscriminatorLoss <= 0.0f ||
-		trainingPlan.finalGeneratorLoss <= 0.0f) {
+		trainingPlan.finalGeneratorLoss <= 0.0f ||
+		trainingPlan.updatePreview.learningRate != trainingSettings.learningRate ||
+		trainingPlan.updatePreview.updatedDiscriminatorWeight == trainingPlan.updatePreview.initialDiscriminatorWeight ||
+		trainingPlan.updatePreview.updatedGeneratorWeight == trainingPlan.updatePreview.initialGeneratorWeight) {
 		std::cerr << "tiny GAN training dry-run plan failed\n";
 		std::filesystem::remove_all(datasetPath);
 		return 1;

@@ -115,4 +115,7 @@ discriminator forward pass is a deterministic fixed-weight classifier preview:
 it produces a stable logit/probability for tests and UI planning, but it does
 not claim learned quality. Binary cross-entropy helpers are the first loss
 surface; they clamp probabilities before applying log loss and keep
-discriminator and generator loss semantics in one tested place.
+discriminator and generator loss semantics in one tested place. The weight
+update preview intentionally mutates only scalar preview values, not model
+checkpoints, so the addon can test update direction before introducing a real
+trainable parameter format.

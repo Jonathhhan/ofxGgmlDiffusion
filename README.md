@@ -131,6 +131,8 @@ The public API now has the first boring boundary for that work:
 - `ofxGgmlDiffusionTinyGanBinaryCrossEntropy()` and
   `ofxGgmlDiffusionComputeTinyGanLossPair()` define the first real/fake loss
   helpers used by the dry-run trace
+- `ofxGgmlDiffusionPreviewTinyGanWeightUpdate()` previews one deterministic
+  scalar update from those losses without writing trained weights
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 
