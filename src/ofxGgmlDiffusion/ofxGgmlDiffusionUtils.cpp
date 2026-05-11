@@ -13,11 +13,19 @@ namespace ofxGgmlDiffusionUtils {
 			return "diffusion: empty request";
 		}
 		std::ostringstream stream;
-		stream << "diffusion " << getModeName(request.mode) << " "
+		auto familyName = getBackendFamilyName(request.backendFamily);
+		if (familyName == "auto") {
+			familyName = "diffusion";
+		}
+		stream << familyName << " " << getModeName(request.mode) << " "
 			<< request.width << "x" << request.height
 			<< ": " << cleanPrompt(request.prompt);
 		if (request.identityAdapter.isConfigured()) {
 			stream << " [" << getIdentityAdapterTypeName(request.identityAdapter.type) << "]";
+		}
+		if (request.backendFamily == ofxGgmlDiffusionBackendFamily::GAN &&
+			!request.gan.generatorPath.empty()) {
+			stream << " [" << request.gan.generatorPath << "]";
 		}
 		return stream.str();
 	}
@@ -51,6 +59,16 @@ namespace ofxGgmlDiffusionUtils {
 	std::string getIdentityAdapterTypeName(ofxGgmlDiffusionIdentityAdapterType type) {
 		switch (type) {
 		case ofxGgmlDiffusionIdentityAdapterType::PhotoMaker: return "photomaker";
+		default: return "unknown";
+		}
+	}
+
+	std::string getBackendFamilyName(ofxGgmlDiffusionBackendFamily family) {
+		switch (family) {
+		case ofxGgmlDiffusionBackendFamily::Auto: return "auto";
+		case ofxGgmlDiffusionBackendFamily::Diffusion: return "diffusion";
+		case ofxGgmlDiffusionBackendFamily::GAN: return "gan";
+		case ofxGgmlDiffusionBackendFamily::External: return "external";
 		default: return "unknown";
 		}
 	}
@@ -112,6 +130,22 @@ namespace ofxGgmlDiffusionUtils {
 		if (request.mode == ofxGgmlDiffusionMode::Upscale && request.initImagePath.empty()) {
 			result.errors.push_back("upscale requires initImagePath");
 		}
+		if (request.backendFamily == ofxGgmlDiffusionBackendFamily::GAN) {
+			if (request.gan.generatorPath.empty()) {
+				result.errors.push_back("GAN requests require gan.generatorPath");
+			}
+			if (request.gan.latentSize <= 0) {
+				result.errors.push_back("GAN latentSize must be positive");
+			}
+			if (!std::isfinite(request.gan.truncation) || request.gan.truncation < 0.0f) {
+				result.errors.push_back("GAN truncation must be finite and non-negative");
+			}
+			if (request.mode != ofxGgmlDiffusionMode::TextToImage &&
+				request.mode != ofxGgmlDiffusionMode::ImageToImage &&
+				request.mode != ofxGgmlDiffusionMode::Upscale) {
+				result.errors.push_back("GAN requests currently support text-to-image, image-to-image, or upscale modes");
+			}
+		}
 		if (!isAutoValue(request.cfgScale) && !std::isfinite(request.cfgScale)) {
 			result.errors.push_back("cfgScale must be finite or auto");
 		}
@@ -154,6 +188,16 @@ namespace ofxGgmlDiffusionUtils {
 		ofxGgmlDiffusionRequest request;
 		request.mode = ofxGgmlDiffusionMode::TextToImage;
 		request.prompt = cleanPrompt(prompt);
+		return request;
+	}
+
+	ofxGgmlDiffusionRequest makeGanImageRequest(
+		const std::string & prompt,
+		const std::string & generatorPath) {
+		auto request = makeTextToImageRequest(prompt);
+		request.backendFamily = ofxGgmlDiffusionBackendFamily::GAN;
+		request.gan.generatorPath = generatorPath;
+		request.cfgScale = 1.0f;
 		return request;
 	}
 

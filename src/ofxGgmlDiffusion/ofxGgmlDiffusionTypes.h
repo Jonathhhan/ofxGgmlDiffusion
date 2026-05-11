@@ -40,6 +40,13 @@ enum class ofxGgmlDiffusionIdentityAdapterType {
 	PhotoMaker
 };
 
+enum class ofxGgmlDiffusionBackendFamily {
+	Auto = 0,
+	Diffusion,
+	GAN,
+	External
+};
+
 struct ofxGgmlDiffusionLora {
 	std::string path;
 	float strength = 1.0f;
@@ -117,9 +124,26 @@ struct ofxGgmlDiffusionContextSettings {
 	}
 };
 
+struct ofxGgmlDiffusionGanSettings {
+	std::string generatorPath;
+	std::string latentPath;
+	std::string conditioningImagePath;
+	std::string classLabel;
+	int latentSize = 512;
+	float truncation = 1.0f;
+
+	bool isConfigured() const {
+		return !generatorPath.empty() ||
+			!latentPath.empty() ||
+			!conditioningImagePath.empty() ||
+			!classLabel.empty();
+	}
+};
+
 struct ofxGgmlDiffusionRequest {
 	ofxGgmlDiffusionMode mode = ofxGgmlDiffusionMode::TextToImage;
 	ofxGgmlDiffusionModelFamily modelFamily = ofxGgmlDiffusionModelFamily::Unknown;
+	ofxGgmlDiffusionBackendFamily backendFamily = ofxGgmlDiffusionBackendFamily::Auto;
 	std::string prompt;
 	std::string negativePrompt;
 	std::string initImagePath;
@@ -137,6 +161,7 @@ struct ofxGgmlDiffusionRequest {
 	std::vector<ofxGgmlDiffusionLora> loras;
 	std::vector<ofxGgmlDiffusionControlImage> controlImages;
 	ofxGgmlDiffusionIdentityAdapter identityAdapter;
+	ofxGgmlDiffusionGanSettings gan;
 	std::vector<std::string> tags;
 };
 

@@ -1,4 +1,5 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
@@ -79,6 +80,57 @@ int main() {
 	inpaint.mode = ofxGgmlDiffusionMode::Inpainting;
 	if (ofxGgmlDiffusionUtils::validate(inpaint).isOk()) {
 		std::cerr << "inpainting without images passed validation\n";
+		return 1;
+	}
+
+	auto ganRequest = ofxGgmlDiffusionUtils::makeGanImageRequest(
+		"small monochrome icon set",
+		"models/icon-generator.gguf");
+	ganRequest.outputPath = "renders/icons.png";
+	ganRequest.seed = 123;
+	ganRequest.gan.latentSize = 256;
+	ganRequest.gan.truncation = 0.75f;
+	if (ofxGgmlDiffusionUtils::getBackendFamilyName(ganRequest.backendFamily) != "gan" ||
+		!ganRequest.gan.isConfigured() ||
+		ofxGgmlDiffusionUtils::validate(ganRequest).isError()) {
+		std::cerr << "valid GAN request failed helpers or validation\n";
+		return 1;
+	}
+	const auto ganDescription = ofxGgmlDiffusionUtils::describe(ganRequest);
+	if (ganDescription.find("gan text-to-image") == std::string::npos ||
+		ganDescription.find("models/icon-generator.gguf") == std::string::npos) {
+		std::cerr << "GAN description did not include backend or generator path\n";
+		return 1;
+	}
+	auto invalidGan = ganRequest;
+	invalidGan.gan.generatorPath.clear();
+	if (ofxGgmlDiffusionUtils::validate(invalidGan).isOk()) {
+		std::cerr << "GAN request without generator path passed validation\n";
+		return 1;
+	}
+	auto ganBackend = ofxGgmlMakeUnavailableDiffusionImageGenerationBackend(
+		ofxGgmlDiffusionBackendFamily::GAN,
+		"gan");
+	if (!ganBackend ||
+		ganBackend->getBackendName() != "gan" ||
+		ganBackend->getBackendFamily() != ofxGgmlDiffusionBackendFamily::GAN ||
+		ganBackend->isAvailable() ||
+		ganBackend->isLoaded()) {
+		std::cerr << "unavailable GAN backend reported unexpected state\n";
+		return 1;
+	}
+	const auto ganSetup = ganBackend->setup(ofxGgmlDiffusionContextSettings{});
+	if (ganSetup.isOk() ||
+		ganSetup.error.find("not available") == std::string::npos) {
+		std::cerr << "unavailable GAN setup was unexpected\n";
+		return 1;
+	}
+	const auto ganResult = ganBackend->generate(ganRequest);
+	if (ganResult.isOk() ||
+		ganResult.seed != ganRequest.seed ||
+		ganResult.outputPath != ganRequest.outputPath ||
+		ganResult.references.empty()) {
+		std::cerr << "unavailable GAN generation result was unexpected\n";
 		return 1;
 	}
 

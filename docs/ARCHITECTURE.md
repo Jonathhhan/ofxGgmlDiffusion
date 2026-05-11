@@ -74,3 +74,10 @@ the same media, prompt/config, and openFrameworks pixel plumbing as diffusion
 workflows. Keep the first boundary focused on exported-generator inference or an
 explicit external bridge. Do not promise in-addon adversarial training until a
 small ggml training proof is validated.
+
+The first concrete boundary is `ofxGgmlDiffusionImageGenerationBackend`.
+Backends report a family such as diffusion, GAN, or external, accept the common
+context/request types, and return the existing image result type. GAN-specific
+request data lives in `ofxGgmlDiffusionGanSettings`; a real backend can later
+decide whether the generator path points at GGUF, a custom ggml graph bundle, or
+an external bridge contract.

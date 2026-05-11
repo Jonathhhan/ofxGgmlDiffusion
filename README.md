@@ -103,8 +103,19 @@ separate image-generation backend family beside diffusion: useful for exported
 generator inference, style-specific image synthesis, super-resolution, or
 image-to-image experiments.
 
-The stable path should start with inference from a known local generator graph
-or an external bridge. Full in-addon adversarial training should remain
+The public API now has the first boring boundary for that work:
+
+- `ofxGgmlDiffusionBackendFamily::GAN` marks the request as a GAN image workflow
+- `ofxGgmlDiffusionGanSettings` carries generator path, latent settings,
+  optional conditioning image, and class label metadata
+- `makeGanImageRequest()` creates a validated text-to-image GAN request
+- `ofxGgmlDiffusionImageGenerationBackend` is the shared backend interface for
+  future diffusion, GAN, or external image runtimes
+- `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
+  clearly until a real generator backend is installed
+
+The stable path should start with inference from a known local generator graph or
+an external bridge. Full in-addon adversarial training should remain
 experimental until ggml training/autograd support is proven locally with focused
 tests.
 
