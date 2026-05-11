@@ -1,0 +1,32 @@
+# Migration From ofxStableDiffusion
+
+`ofxStableDiffusion` proved several useful ideas, but it also mixed the addon
+API, native runtime, generated binaries, sample media, and large workflow
+experiments in one repository.
+
+`ofxGgmlDiffusion` starts smaller:
+
+- keep typed context/request/result objects
+- keep prompt cleanup and request validation helpers
+- keep LoRA and control-image descriptors
+- keep root-level examples only
+- generate native stable-diffusion.cpp binaries locally
+- do not commit model files, generated images/videos, native build output, or
+  vendored upstream source
+
+## Old To New
+
+| Old `ofxStableDiffusion` idea | New home |
+| --- | --- |
+| `ofxStableDiffusionContextSettings` | `ofxGgmlDiffusionContextSettings` |
+| `ofxStableDiffusionImageRequest` | `ofxGgmlDiffusionRequest` |
+| prompt cleanup helpers | `ofxGgmlDiffusionUtils::cleanPrompt()` |
+| request validation helpers | `ofxGgmlDiffusionUtils::validate()` |
+| LoRA descriptors | `ofxGgmlDiffusionLora` |
+| ControlNet descriptors | `ofxGgmlDiffusionControlImage` |
+| native wrapper and worker thread | future bridge/backend layer |
+| large GUI and video workflows | later focused companion examples |
+
+The next migration step should add a generated `stable-diffusion.cpp` runtime
+under `libs/stable-diffusion` and one bridge backend that accepts
+`ofxGgmlDiffusionRequest`.

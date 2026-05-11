@@ -6,10 +6,16 @@
 
 ## First Milestone
 
-- define small request/result types
+- define small request/result/config types
 - keep one root-level smoke example
 - keep generated models, media, builds, and IDE files out of git
 - validate the addon with local headless tests
+
+The first migration from `ofxStableDiffusion` keeps the useful typed surface:
+context settings, model-family labels, text/image/inpaint/upscale modes,
+LoRA/control image descriptors, prompt cleanup, and request validation. The
+large native wrapper, vendored stable-diffusion.cpp tree, generated media, and
+experimental app workflows stay out until they are deliberately reintroduced.
 
 ## Example
 
