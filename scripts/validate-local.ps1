@@ -35,6 +35,8 @@ Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion.h") "public header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionTypes.h") "types header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionUtils.h") "utility header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionUtils.cpp") "utility source"
+Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionImageUtils.h") "image utility header"
+Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionImageUtils.cpp") "image utility source"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "native backend header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.cpp") "native backend source"
 

@@ -29,8 +29,9 @@ experiments in one repository.
 | worker thread and cancellation | future backend layer |
 | large GUI and video workflows | later focused companion examples |
 
-The first native bridge now accepts `ofxGgmlDiffusionRequest` for text-to-image.
-The next migration step is image saving, then threaded/cancellable generation.
+The first native bridge now accepts `ofxGgmlDiffusionRequest` for text-to-image
+and image utility helpers save/display generated pixel data. The next migration
+step is threaded/cancellable generation.
 
 `scripts/build-stable-diffusion.*` now owns the generated runtime setup path.
 It clones/builds/installs upstream locally only when the user runs it, points

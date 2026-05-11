@@ -44,13 +44,18 @@ the native runtime is generated and the app build defines
 `OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`.
 
 The first bridge intentionally supports text-to-image only and returns generated
-pixels in `ofxGgmlDiffusionResult::images`. Image-to-image, inpainting, image
-saving helpers, and threaded/cancellable generation should be layered on after
-this boundary stays boring.
+pixels in `ofxGgmlDiffusionResult::images`. Use
+`ofxGgmlDiffusionImageUtils::toPixels()` or `saveFirstImage()` to display or
+save those pixels from an openFrameworks app. Image-to-image, inpainting, and
+threaded/cancellable generation should be layered on after this boundary stays
+boring.
 
 ## Example
 
-`ofxGgmlDiffusionPromptExample` is a root-level prompt conditioning smoke test. Generate it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and `ofxGgmlCore`.
+`ofxGgmlDiffusionPromptExample` is a root-level text-to-image example. Generate
+it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and
+`ofxGgmlCore`, set `OFXGGML_DIFFUSION_MODEL` or place a model at
+`bin/data/models/model.safetensors`, then press `R` to run one generation.
 
 ## Dependencies
 

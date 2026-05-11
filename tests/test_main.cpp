@@ -1,4 +1,5 @@
-#include "ofxGgmlDiffusion.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
 #include <iostream>
 
