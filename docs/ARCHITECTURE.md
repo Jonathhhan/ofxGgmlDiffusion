@@ -93,3 +93,9 @@ selects the `tiny-mlp` architecture, latent/hidden sizes, deterministic seeds,
 and scales. It is not a trained weight format. It exists to prove that examples
 can load a user-provided generator descriptor before the addon grows a real
 tensor checkpoint format.
+
+`ofxGgmlDiffusionTinyGanTraining` is the next boundary, not a finished trainer.
+It validates the dataset/output/optimizer contract and returns a dry-run plan so
+the addon can agree on training inputs before adding discriminator graphs,
+autograd checks, and checkpoint writing. Real adversarial training should only
+land after it can produce repeatable fixtures in tests.

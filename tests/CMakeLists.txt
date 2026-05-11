@@ -9,6 +9,7 @@ add_executable(ofxGgmlDiffusion_tests
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.cpp
+	../src/ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionUtils.cpp)
 

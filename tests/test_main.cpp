@@ -2,6 +2,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
 #include <cstdio>
@@ -188,6 +189,34 @@ int main() {
 		return 1;
 	}
 	std::remove(presetPath.c_str());
+
+	ofxGgmlDiffusionTinyGanTrainingSettings trainingSettings;
+	trainingSettings.datasetPath = "datasets/icons";
+	trainingSettings.outputPresetPath = "models/tiny-trained.ofxggmlgan";
+	trainingSettings.epochs = 2;
+	trainingSettings.batchSize = 8;
+	trainingSettings.latentSize = 64;
+	trainingSettings.hiddenSize = 32;
+	const auto trainingPlan = ofxGgmlDiffusionPlanTinyGanTraining(trainingSettings);
+	if (!trainingPlan ||
+		trainingPlan.text.find("tiny GAN training dry-run") == std::string::npos ||
+		trainingPlan.outputPresetPath != trainingSettings.outputPresetPath ||
+		trainingPlan.epochsPlanned != trainingSettings.epochs) {
+		std::cerr << "tiny GAN training dry-run plan failed\n";
+		return 1;
+	}
+	auto invalidTrainingSettings = trainingSettings;
+	invalidTrainingSettings.dryRun = false;
+	if (ofxGgmlDiffusionRunTinyGanTraining(invalidTrainingSettings).isOk()) {
+		std::cerr << "non-dry-run tiny GAN training unexpectedly passed\n";
+		return 1;
+	}
+	invalidTrainingSettings = trainingSettings;
+	invalidTrainingSettings.imageWidth = 128;
+	if (ofxGgmlDiffusionValidateTinyGanTraining(invalidTrainingSettings).isOk()) {
+		std::cerr << "invalid tiny GAN training size unexpectedly passed\n";
+		return 1;
+	}
 
 	ofxGgmlDiffusionImage image;
 	image.width = 2;
