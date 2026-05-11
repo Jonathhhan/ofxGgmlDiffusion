@@ -19,6 +19,12 @@ build/
 libs/*/.source/
 libs/*/build/
 libs/*/build*/
+libs/*/bin/*
+libs/*/include/*
+libs/*/lib/*
+!libs/*/bin/.gitkeep
+!libs/*/include/.gitkeep
+!libs/*/lib/.gitkeep
 
 ofxGgml*Example/bin/
 ofxGgml*Example/obj/

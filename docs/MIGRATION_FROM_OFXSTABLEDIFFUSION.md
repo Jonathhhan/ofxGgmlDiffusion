@@ -10,7 +10,8 @@ experiments in one repository.
 - keep prompt cleanup and request validation helpers
 - keep LoRA and control-image descriptors
 - keep root-level examples only
-- generate native stable-diffusion.cpp binaries locally
+- generate native stable-diffusion.cpp binaries locally while reusing
+  `ofxGgmlCore` ggml by default
 - do not commit model files, generated images/videos, native build output, or
   vendored upstream source
 
@@ -27,6 +28,10 @@ experiments in one repository.
 | native wrapper and worker thread | future bridge/backend layer |
 | large GUI and video workflows | later focused companion examples |
 
-The next migration step should add a generated `stable-diffusion.cpp` runtime
-under `libs/stable-diffusion` and one bridge backend that accepts
-`ofxGgmlDiffusionRequest`.
+The next migration step after generated runtime setup is one bridge backend that
+accepts `ofxGgmlDiffusionRequest`.
+
+`scripts/build-stable-diffusion.*` now owns the generated runtime setup path.
+It clones/builds/installs upstream locally only when the user runs it, points
+stable-diffusion.cpp at sibling `ofxGgmlCore` ggml by default, and its dry-run
+mode is covered by local validation.

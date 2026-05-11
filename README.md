@@ -17,6 +17,25 @@ LoRA/control image descriptors, prompt cleanup, and request validation. The
 large native wrapper, vendored stable-diffusion.cpp tree, generated media, and
 experimental app workflows stay out until they are deliberately reintroduced.
 
+Native `stable-diffusion.cpp` runtime files are generated locally:
+
+```powershell
+scripts\build-stable-diffusion.bat
+scripts\build-stable-diffusion.bat -DryRun
+scripts\build-stable-diffusion.bat -CpuOnly
+scripts\build-stable-diffusion.bat -Cuda
+scripts\build-stable-diffusion.bat -BundledGgml
+```
+
+The script defaults to `-Auto`, reuses ggml from sibling addon
+`../ofxGgmlCore`, enables only backends that are available on the current
+machine, and installs generated files under `libs/stable-diffusion`. Pass
+`-BundledGgml` only when you intentionally want stable-diffusion.cpp to build
+against its own vendored ggml copy.
+
+Generated source, build trees, libraries, executables, models, and output media
+stay out of git.
+
 ## Example
 
 `ofxGgmlDiffusionPromptExample` is a root-level prompt conditioning smoke test. Generate it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion` and `ofxGgmlCore`.

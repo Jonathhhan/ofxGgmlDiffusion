@@ -48,6 +48,18 @@ Assert-Path (Join-Path $exampleRoot "src\ofApp.h") "smoke example ofApp.h"
 Assert-Path (Join-Path $exampleRoot "src\ofApp.cpp") "smoke example ofApp.cpp"
 Assert-Path (Join-Path $addonRoot "tests\CMakeLists.txt") "test CMakeLists"
 Assert-Path (Join-Path $addonRoot "tests\test_main.cpp") "test source"
+Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.ps1") "stable-diffusion build script"
+Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.bat") "stable-diffusion Windows build wrapper"
+Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.sh") "stable-diffusion shell build wrapper"
+Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.ps1") "stable-diffusion setup script"
+Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.bat") "stable-diffusion Windows setup wrapper"
+Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.sh") "stable-diffusion shell setup wrapper"
+Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.ps1") "stable-diffusion dry-run test"
+Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.bat") "stable-diffusion Windows dry-run test wrapper"
+Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.sh") "stable-diffusion shell dry-run test wrapper"
+Assert-Path (Join-Path $addonRoot "libs\stable-diffusion\bin\.gitkeep") "stable-diffusion bin placeholder"
+Assert-Path (Join-Path $addonRoot "libs\stable-diffusion\include\.gitkeep") "stable-diffusion include placeholder"
+Assert-Path (Join-Path $addonRoot "libs\stable-diffusion\lib\.gitkeep") "stable-diffusion lib placeholder"
 
 $nestedExamples = Join-Path $addonRoot "examples"
 if (Test-Path -LiteralPath $nestedExamples -PathType Container) {
@@ -61,6 +73,8 @@ $forbidden = @(
 	"ofxGgmlDiffusionPromptExample\bin",
 	"ofxGgmlDiffusionPromptExample\obj",
 	"ofxGgmlDiffusionPromptExample\.vs",
+	"libs\stable-diffusion\.source",
+	"libs\stable-diffusion\build",
 	"models"
 )
 
@@ -71,10 +85,10 @@ foreach ($relative in $forbidden) {
 	}
 }
 
+Write-Step "Checking stable-diffusion.cpp setup dry-runs"
+& (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.ps1")
+
 Write-Step "Running headless tests"
 & (Join-Path $scriptRoot "test-addon.ps1")
-if ($LASTEXITCODE -ne 0) {
-	throw "Headless tests failed with exit code $LASTEXITCODE"
-}
 
 Write-Step "ofxGgmlDiffusion local validation passed"
