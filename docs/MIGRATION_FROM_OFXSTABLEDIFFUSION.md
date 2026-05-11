@@ -9,6 +9,7 @@ experiments in one repository.
 - keep typed context/request/result objects
 - keep prompt cleanup and request validation helpers
 - keep LoRA and control-image descriptors
+- keep identity adapter descriptors such as PhotoMaker
 - keep root-level examples only
 - generate native stable-diffusion.cpp binaries locally while reusing
   `ofxGgmlCore` ggml by default
@@ -25,6 +26,7 @@ experiments in one repository.
 | request validation helpers | `ofxGgmlDiffusionUtils::validate()` |
 | LoRA descriptors | `ofxGgmlDiffusionLora` |
 | ControlNet descriptors | `ofxGgmlDiffusionControlImage` |
+| identity adapters | `ofxGgmlDiffusionIdentityAdapter`, starting with PhotoMaker |
 | native wrapper | `ofxGgmlDiffusionNativeBackend` first text-to-image bridge |
 | worker thread and cancellation | `ofxGgmlDiffusionAsyncRunner` first non-blocking layer |
 | large GUI and video workflows | later focused companion examples |

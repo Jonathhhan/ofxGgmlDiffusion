@@ -35,6 +35,11 @@ enum class ofxGgmlDiffusionScheduler {
 	FlowMatch
 };
 
+enum class ofxGgmlDiffusionIdentityAdapterType {
+	Unknown = 0,
+	PhotoMaker
+};
+
 struct ofxGgmlDiffusionLora {
 	std::string path;
 	float strength = 1.0f;
@@ -52,6 +57,24 @@ struct ofxGgmlDiffusionControlImage {
 
 	bool isConfigured() const {
 		return !imagePath.empty();
+	}
+};
+
+struct ofxGgmlDiffusionIdentityAdapter {
+	ofxGgmlDiffusionIdentityAdapterType type = ofxGgmlDiffusionIdentityAdapterType::Unknown;
+	std::string modelPath;
+	std::string triggerWord = "img";
+	std::vector<std::string> referenceImagePaths;
+	float strength = 1.0f;
+
+	bool isConfigured() const {
+		return type != ofxGgmlDiffusionIdentityAdapterType::Unknown ||
+			!modelPath.empty() ||
+			!referenceImagePaths.empty();
+	}
+
+	bool hasReferenceImages() const {
+		return !referenceImagePaths.empty();
 	}
 };
 
@@ -96,6 +119,7 @@ struct ofxGgmlDiffusionContextSettings {
 
 struct ofxGgmlDiffusionRequest {
 	ofxGgmlDiffusionMode mode = ofxGgmlDiffusionMode::TextToImage;
+	ofxGgmlDiffusionModelFamily modelFamily = ofxGgmlDiffusionModelFamily::Unknown;
 	std::string prompt;
 	std::string negativePrompt;
 	std::string initImagePath;
@@ -112,6 +136,7 @@ struct ofxGgmlDiffusionRequest {
 	ofxGgmlDiffusionScheduler scheduler = ofxGgmlDiffusionScheduler::Auto;
 	std::vector<ofxGgmlDiffusionLora> loras;
 	std::vector<ofxGgmlDiffusionControlImage> controlImages;
+	ofxGgmlDiffusionIdentityAdapter identityAdapter;
 	std::vector<std::string> tags;
 };
 

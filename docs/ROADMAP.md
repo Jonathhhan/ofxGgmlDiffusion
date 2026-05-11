@@ -20,9 +20,13 @@
   the text-to-image example.
 - Add threaded generation with result-level cancellation around the native
   bridge.
+- Add a typed identity adapter request surface for PhotoMaker without creating
+  a separate addon.
 
 ## Next Milestones
 
+- Wire PhotoMaker into the native stable-diffusion.cpp bridge after confirming
+  the installed C API fields.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp
   callback path.
 - Add focused tests around request/result helpers.

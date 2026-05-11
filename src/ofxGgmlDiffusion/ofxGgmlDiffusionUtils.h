@@ -9,9 +9,14 @@ namespace ofxGgmlDiffusionUtils {
 	std::string describe(const ofxGgmlDiffusionRequest & request);
 	std::string getModeName(ofxGgmlDiffusionMode mode);
 	std::string getModelFamilyName(ofxGgmlDiffusionModelFamily family);
+	std::string getIdentityAdapterTypeName(ofxGgmlDiffusionIdentityAdapterType type);
 	std::string cleanPrompt(const std::string & prompt);
 	bool isAutoValue(float value);
 	bool isValidImageDimension(int value);
 	ofxGgmlDiffusionValidationResult validate(const ofxGgmlDiffusionRequest & request);
 	ofxGgmlDiffusionRequest makeTextToImageRequest(const std::string & prompt);
+	ofxGgmlDiffusionIdentityAdapter makePhotoMakerAdapter(
+		const std::string & modelPath,
+		const std::vector<std::string> & referenceImagePaths,
+		const std::string & triggerWord = "img");
 }

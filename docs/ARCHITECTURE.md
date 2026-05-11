@@ -18,6 +18,7 @@ No dependency should point from `ofxGgmlCore` back to `ofxGgmlDiffusion`.
 - the opt-in stable-diffusion.cpp native bridge
 - the worker-thread async runner around native generation
 - openFrameworks image conversion/saving helpers for diffusion results
+- identity adapter descriptors such as PhotoMaker
 - model-specific preprocessing and postprocessing
 - focused root-level examples
 - local media/model workflow documentation
@@ -45,3 +46,11 @@ files.
 thread and suppressing a result after cancellation is requested. It does not
 pretend to interrupt the current stable-diffusion.cpp sampling call; a deeper
 interrupt should be added only when the native API exposes a reliable hook.
+
+## Identity Adapters
+
+PhotoMaker is treated as an identity adapter inside diffusion. Keep the public
+shape generic enough for future identity workflows, but do not split
+`ofxGgmlPhotoMaker` unless several non-diffusion consumers need the same layer.
+The first milestone is typed request validation; native stable-diffusion.cpp
+wiring should follow only after the installed header is verified locally.

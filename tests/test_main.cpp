@@ -47,6 +47,34 @@ int main() {
 		return 1;
 	}
 
+	auto identityRequest = ofxGgmlDiffusionUtils::makeTextToImageRequest("portrait of img in soft light");
+	identityRequest.modelFamily = ofxGgmlDiffusionModelFamily::SDXL;
+	identityRequest.identityAdapter = ofxGgmlDiffusionUtils::makePhotoMakerAdapter(
+		"models/photomaker.safetensors",
+		{"references/person-01.jpg", "references/person-02.jpg"},
+		" img ");
+	if (!identityRequest.identityAdapter.isConfigured() ||
+		identityRequest.identityAdapter.triggerWord != "img" ||
+		ofxGgmlDiffusionUtils::getIdentityAdapterTypeName(identityRequest.identityAdapter.type) != "photomaker") {
+		std::cerr << "PhotoMaker adapter helper failed\n";
+		return 1;
+	}
+	const auto identityDescription = ofxGgmlDiffusionUtils::describe(identityRequest);
+	if (identityDescription.find("photomaker") == std::string::npos) {
+		std::cerr << "description did not include identity adapter\n";
+		return 1;
+	}
+	if (ofxGgmlDiffusionUtils::validate(identityRequest).isError()) {
+		std::cerr << "valid PhotoMaker request failed validation\n";
+		return 1;
+	}
+	auto invalidIdentity = identityRequest;
+	invalidIdentity.identityAdapter.referenceImagePaths.clear();
+	if (ofxGgmlDiffusionUtils::validate(invalidIdentity).isOk()) {
+		std::cerr << "PhotoMaker request without references passed validation\n";
+		return 1;
+	}
+
 	auto inpaint = request;
 	inpaint.mode = ofxGgmlDiffusionMode::Inpainting;
 	if (ofxGgmlDiffusionUtils::validate(inpaint).isOk()) {

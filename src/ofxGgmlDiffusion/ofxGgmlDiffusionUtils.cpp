@@ -16,6 +16,9 @@ namespace ofxGgmlDiffusionUtils {
 		stream << "diffusion " << getModeName(request.mode) << " "
 			<< request.width << "x" << request.height
 			<< ": " << cleanPrompt(request.prompt);
+		if (request.identityAdapter.isConfigured()) {
+			stream << " [" << getIdentityAdapterTypeName(request.identityAdapter.type) << "]";
+		}
 		return stream.str();
 	}
 
@@ -41,6 +44,13 @@ namespace ofxGgmlDiffusionUtils {
 		case ofxGgmlDiffusionModelFamily::FluxControl: return "flux-control";
 		case ofxGgmlDiffusionModelFamily::Wan: return "wan";
 		case ofxGgmlDiffusionModelFamily::QwenImage: return "qwen-image";
+		default: return "unknown";
+		}
+	}
+
+	std::string getIdentityAdapterTypeName(ofxGgmlDiffusionIdentityAdapterType type) {
+		switch (type) {
+		case ofxGgmlDiffusionIdentityAdapterType::PhotoMaker: return "photomaker";
 		default: return "unknown";
 		}
 	}
@@ -108,6 +118,34 @@ namespace ofxGgmlDiffusionUtils {
 		if (!isAutoValue(request.strength) && !std::isfinite(request.strength)) {
 			result.errors.push_back("strength must be finite or auto");
 		}
+		if (request.identityAdapter.isConfigured()) {
+			const auto & adapter = request.identityAdapter;
+			if (adapter.type == ofxGgmlDiffusionIdentityAdapterType::Unknown) {
+				result.errors.push_back("identity adapter type is unknown");
+			}
+			if (adapter.modelPath.empty()) {
+				result.errors.push_back("identity adapter requires modelPath");
+			}
+			if (!adapter.hasReferenceImages()) {
+				result.errors.push_back("identity adapter requires at least one reference image");
+			}
+			if (adapter.triggerWord.empty()) {
+				result.errors.push_back("identity adapter requires triggerWord");
+			}
+			if (!std::isfinite(adapter.strength) || adapter.strength < 0.0f) {
+				result.errors.push_back("identity adapter strength must be finite and non-negative");
+			}
+			if (adapter.type == ofxGgmlDiffusionIdentityAdapterType::PhotoMaker &&
+				request.mode != ofxGgmlDiffusionMode::TextToImage &&
+				request.mode != ofxGgmlDiffusionMode::ImageToImage) {
+				result.errors.push_back("PhotoMaker supports text-to-image or image-to-image requests");
+			}
+			if (adapter.type == ofxGgmlDiffusionIdentityAdapterType::PhotoMaker &&
+				request.modelFamily != ofxGgmlDiffusionModelFamily::Unknown &&
+				request.modelFamily != ofxGgmlDiffusionModelFamily::SDXL) {
+				result.warnings.push_back("PhotoMaker is expected to run with SDXL-family diffusion models");
+			}
+		}
 		result.success = result.errors.empty();
 		return result;
 	}
@@ -117,5 +155,17 @@ namespace ofxGgmlDiffusionUtils {
 		request.mode = ofxGgmlDiffusionMode::TextToImage;
 		request.prompt = cleanPrompt(prompt);
 		return request;
+	}
+
+	ofxGgmlDiffusionIdentityAdapter makePhotoMakerAdapter(
+		const std::string & modelPath,
+		const std::vector<std::string> & referenceImagePaths,
+		const std::string & triggerWord) {
+		ofxGgmlDiffusionIdentityAdapter adapter;
+		adapter.type = ofxGgmlDiffusionIdentityAdapterType::PhotoMaker;
+		adapter.modelPath = modelPath;
+		adapter.referenceImagePaths = referenceImagePaths;
+		adapter.triggerWord = cleanPrompt(triggerWord);
+		return adapter;
 	}
 }

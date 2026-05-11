@@ -206,6 +206,9 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 	if (request.mode != ofxGgmlDiffusionMode::TextToImage) {
 		return makeError("the first native bridge supports text-to-image requests only");
 	}
+	if (request.identityAdapter.isConfigured()) {
+		return makeError("identity adapters are planned for this addon but are not wired to the native stable-diffusion.cpp bridge yet");
+	}
 
 #if OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION
 	const auto start = std::chrono::steady_clock::now();

@@ -15,9 +15,10 @@ Family map: https://jonathhhan.github.io/ofxGgmlCore/
 
 The first migration from `ofxStableDiffusion` keeps the useful typed surface:
 context settings, model-family labels, text/image/inpaint/upscale modes,
-LoRA/control image descriptors, prompt cleanup, and request validation. The
-large native wrapper, vendored stable-diffusion.cpp tree, generated media, and
-experimental app workflows stay out until they are deliberately reintroduced.
+LoRA/control image descriptors, identity adapter descriptors, prompt cleanup,
+and request validation. The large native wrapper, vendored
+stable-diffusion.cpp tree, generated media, and experimental app workflows stay
+out until they are deliberately reintroduced.
 
 Native `stable-diffusion.cpp` runtime files are generated locally:
 
@@ -57,6 +58,27 @@ openFrameworks examples. `cancel()` marks the pending result as cancelled once
 stable-diffusion.cpp returns control; the current C API path does not interrupt
 an in-flight sampling step.
 
+## Identity Adapters
+
+PhotoMaker belongs in `ofxGgmlDiffusion`, not a separate addon for now. It is a
+diffusion identity-personalization adapter: configure it on the request, keep
+the model and reference images local, and let the native bridge wire it once the
+stable-diffusion.cpp C API surface is settled.
+
+```cpp
+auto request = ofxGgmlDiffusionUtils::makeTextToImageRequest("portrait of img");
+request.modelFamily = ofxGgmlDiffusionModelFamily::SDXL;
+request.identityAdapter = ofxGgmlDiffusionUtils::makePhotoMakerAdapter(
+	"models/photomaker.safetensors",
+	{"references/person-01.jpg", "references/person-02.jpg"},
+	"img");
+```
+
+The current native bridge returns a clear error instead of silently ignoring an
+identity adapter. The typed request surface and validation are ready first; the
+actual PhotoMaker call should be wired after confirming the installed
+stable-diffusion.cpp header.
+
 ## Example
 
 `ofxGgmlDiffusionPromptExample` is a root-level text-to-image example. Generate
@@ -90,4 +112,7 @@ On macOS/Linux:
 
 ## Boundary
 
-Keep diffusion-specific preprocessing, postprocessing, model launch, media handling, and examples here. Move code down into `ofxGgmlCore` only when it becomes a stable, domain-neutral primitive with focused tests.
+Keep diffusion-specific preprocessing, postprocessing, model launch, identity
+adapter integration, media handling, and examples here. Move code down into
+`ofxGgmlCore` only when it becomes a stable, domain-neutral primitive with
+focused tests.
