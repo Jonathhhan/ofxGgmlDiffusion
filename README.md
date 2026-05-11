@@ -127,9 +127,16 @@ it with the openFrameworks projectGenerator using addons `ofxGgmlDiffusion`, `of
 The example runs generation on a worker thread; press `C` to cancel the pending
 result.
 
+`ofxGgmlDiffusionGanExample` is a root-level GAN request example. Generate it
+with the same addons, set `OFXGGML_GAN_GENERATOR` or place a generator at
+`bin/data/models/generator.gguf`, then press `R` to validate and run the request.
+It reports a clear unavailable-backend result until a real GAN runtime is wired.
+
 ```powershell
 scripts\run-diffusion-example.bat -DryRun
 scripts\run-diffusion-example.bat -Build -Model C:\path\to\model.safetensors
+scripts\run-gan-example.bat -DryRun
+scripts\run-gan-example.bat -Build -Generator C:\path\to\generator.gguf
 ```
 
 ## Dependencies

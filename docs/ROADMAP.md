@@ -28,6 +28,8 @@
   this addon, separate from music/audio generation.
 - Add the first `ofxGgmlDiffusionImageGenerationBackend` interface, GAN request
   settings, and unavailable fallback backend.
+- Add `ofxGgmlDiffusionGanExample` as a root-level GAN request smoke example
+  with dry-run launch script coverage.
 
 ## Next Milestones
 

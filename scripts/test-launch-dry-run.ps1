@@ -48,4 +48,18 @@ Assert-Contains $output "Executable:" "Diffusion example dry-run"
 Assert-Contains $output "Output:" "Diffusion example dry-run"
 Assert-NotContains $output "Starting ofxGgmlDiffusionPromptExample" "Diffusion example dry-run"
 
+$generatorPath = Join-Path $scratchDir "dry-run-generator.gguf"
+if (!(Test-Path -LiteralPath $generatorPath -PathType Leaf)) {
+	New-Item -ItemType File -Path $generatorPath | Out-Null
+}
+
+Write-Step "GAN example dry-run"
+$output = & (Join-Path $scriptRoot "run-gan-example.ps1") -DryRun -Generator $generatorPath *>&1 |
+	ForEach-Object { $_.ToString() }
+
+Assert-Contains $output "Using GAN generator: $generatorPath" "GAN example dry-run"
+Assert-Contains $output "Executable:" "GAN example dry-run"
+Assert-Contains $output "Output:" "GAN example dry-run"
+Assert-NotContains $output "Starting ofxGgmlDiffusionGanExample" "GAN example dry-run"
+
 Write-Step "Launch dry-run smoke coverage passed"
