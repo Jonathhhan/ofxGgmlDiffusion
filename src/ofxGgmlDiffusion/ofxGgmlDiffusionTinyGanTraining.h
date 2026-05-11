@@ -25,6 +25,16 @@ struct ofxGgmlDiffusionTinyGanTrainingStep {
 	float generatorLoss = 0.0f;
 };
 
+struct ofxGgmlDiffusionTinyGanDatasetScan {
+	std::string path;
+	bool exists = false;
+	bool isDirectory = false;
+	int imageCount = 0;
+	int unsupportedFileCount = 0;
+	std::vector<std::string> imagePaths;
+	std::vector<std::string> warnings;
+};
+
 struct ofxGgmlDiffusionTinyGanTrainingResult {
 	bool success = false;
 	std::string text;
@@ -38,6 +48,7 @@ struct ofxGgmlDiffusionTinyGanTrainingResult {
 	float learningRate = 0.0f;
 	float finalDiscriminatorLoss = 0.0f;
 	float finalGeneratorLoss = 0.0f;
+	ofxGgmlDiffusionTinyGanDatasetScan dataset;
 	std::vector<std::string> warnings;
 	std::vector<ofxGgmlDiffusionTinyGanTrainingStep> steps;
 
@@ -56,6 +67,8 @@ struct ofxGgmlDiffusionTinyGanTrainingResult {
 
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionValidateTinyGanTraining(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
+ofxGgmlDiffusionTinyGanDatasetScan ofxGgmlDiffusionScanTinyGanDataset(
+	const std::string& datasetPath);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(

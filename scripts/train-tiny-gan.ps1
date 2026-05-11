@@ -52,12 +52,39 @@ if ($LearningRate -le 0) {
 	throw "LearningRate must be greater than zero."
 }
 
+$supportedExtensions = @(".png", ".jpg", ".jpeg", ".bmp", ".tga")
+$datasetLabel = if ([string]::IsNullOrWhiteSpace($Dataset)) { "(synthetic placeholder)" } else { $Dataset }
+$datasetExists = $false
+$datasetIsDirectory = $false
+$datasetImageCount = 0
+$datasetUnsupportedCount = 0
+if (![string]::IsNullOrWhiteSpace($Dataset)) {
+	$datasetExists = Test-Path -LiteralPath $Dataset
+	if ($datasetExists) {
+		$datasetIsDirectory = Test-Path -LiteralPath $Dataset -PathType Container
+		if ($datasetIsDirectory) {
+			$files = Get-ChildItem -LiteralPath $Dataset -Recurse -File
+			foreach ($file in $files) {
+				if ($supportedExtensions -contains $file.Extension.ToLowerInvariant()) {
+					$datasetImageCount += 1
+				} else {
+					$datasetUnsupportedCount += 1
+				}
+			}
+		}
+	}
+}
+
 $plannedUpdates = $Epochs * $DryRunBatchesPerEpoch
 $finalDiscriminatorLoss = [Math]::Round(1.3862944 - 0.18, 6)
 $finalGeneratorLoss = [Math]::Round(0.6931472 - 0.07, 6)
 
 Write-Step "Tiny GAN training dry-run"
-Write-Step "Dataset: $(if ([string]::IsNullOrWhiteSpace($Dataset)) { '(synthetic placeholder)' } else { $Dataset })"
+Write-Step "Dataset: $datasetLabel"
+Write-Step "Dataset exists: $(if ($datasetExists) { 'yes' } else { 'no' })"
+Write-Step "Dataset directory: $(if ($datasetIsDirectory) { 'yes' } else { 'no' })"
+Write-Step "Dataset images: $datasetImageCount"
+Write-Step "Dataset unsupported files: $datasetUnsupportedCount"
 Write-Step "Output preset: $OutputPreset"
 Write-Step "Generator architecture: tiny-mlp"
 Write-Step "Discriminator architecture: tiny-mlp-binary-classifier"

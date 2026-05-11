@@ -1,6 +1,9 @@
 #include "ofxGgmlDiffusionTinyGanTraining.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <filesystem>
 #include <sstream>
 
 namespace {
@@ -20,6 +23,22 @@ namespace {
 
 	bool isFinitePositive(float value) {
 		return std::isfinite(value) && value > 0.0f;
+	}
+
+	std::string toLower(std::string value) {
+		std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+			return static_cast<char>(std::tolower(c));
+		});
+		return value;
+	}
+
+	bool isSupportedImageExtension(const std::filesystem::path& path) {
+		const auto extension = toLower(path.extension().string());
+		return extension == ".png" ||
+			extension == ".jpg" ||
+			extension == ".jpeg" ||
+			extension == ".bmp" ||
+			extension == ".tga";
 	}
 }
 
@@ -77,6 +96,53 @@ ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionValidateTinyGanTraining(
 	return result;
 }
 
+ofxGgmlDiffusionTinyGanDatasetScan ofxGgmlDiffusionScanTinyGanDataset(
+	const std::string& datasetPath) {
+	ofxGgmlDiffusionTinyGanDatasetScan scan;
+	scan.path = datasetPath;
+	if (datasetPath.empty()) {
+		scan.warnings.push_back("no dataset path provided; planning uses a synthetic dataset placeholder");
+		return scan;
+	}
+
+	const std::filesystem::path root(datasetPath);
+	std::error_code error;
+	scan.exists = std::filesystem::exists(root, error);
+	if (error || !scan.exists) {
+		scan.warnings.push_back("dataset path does not exist");
+		return scan;
+	}
+
+	scan.isDirectory = std::filesystem::is_directory(root, error);
+	if (error || !scan.isDirectory) {
+		scan.warnings.push_back("dataset path is not a directory");
+		return scan;
+	}
+
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(root, error)) {
+		if (error) {
+			scan.warnings.push_back("dataset scan stopped early because a directory could not be read");
+			break;
+		}
+		if (!entry.is_regular_file(error) || error) {
+			error.clear();
+			continue;
+		}
+		if (isSupportedImageExtension(entry.path())) {
+			++scan.imageCount;
+			scan.imagePaths.push_back(entry.path().string());
+		} else {
+			++scan.unsupportedFileCount;
+		}
+	}
+
+	std::sort(scan.imagePaths.begin(), scan.imagePaths.end());
+	if (scan.imageCount == 0) {
+		scan.warnings.push_back("dataset contains no supported images");
+	}
+	return scan;
+}
+
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings) {
 	std::vector<ofxGgmlDiffusionTinyGanTrainingStep> steps;
@@ -107,6 +173,10 @@ ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(
 	if (!result) {
 		return result;
 	}
+	result.dataset = ofxGgmlDiffusionScanTinyGanDataset(settings.datasetPath);
+	for (const auto& warning : result.dataset.warnings) {
+		result.warnings.push_back(warning);
+	}
 	result.steps = ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(settings);
 	if (!result.steps.empty()) {
 		result.finalDiscriminatorLoss = result.steps.back().discriminatorLoss;
@@ -116,6 +186,9 @@ ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(
 	std::ostringstream text;
 	text << "tiny GAN training dry-run\n";
 	text << "dataset: " << (settings.datasetPath.empty() ? "(synthetic placeholder)" : settings.datasetPath) << "\n";
+	text << "dataset exists: " << (result.dataset.exists ? "yes" : "no") << "\n";
+	text << "dataset images: " << result.dataset.imageCount << "\n";
+	text << "dataset unsupported files: " << result.dataset.unsupportedFileCount << "\n";
 	text << "output preset: " << settings.outputPresetPath << "\n";
 	text << "generator architecture: tiny-mlp\n";
 	text << "discriminator architecture: tiny-mlp-binary-classifier\n";

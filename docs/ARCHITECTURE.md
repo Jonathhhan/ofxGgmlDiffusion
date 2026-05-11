@@ -100,5 +100,7 @@ the addon can agree on training inputs before adding discriminator graphs,
 autograd checks, and checkpoint writing. The dry-run trace already models the
 alternating GAN loop: one discriminator update and one generator update per
 planned batch, with deterministic placeholder losses for tests and UI previews.
-Real adversarial training should only land after it can produce repeatable
-fixtures in tests.
+The dataset scanner is intentionally lightweight: recursively count supported
+image files and unsupported regular files, then surface missing or empty
+datasets as warnings during dry-runs. Real adversarial training should only land
+after it can produce repeatable fixtures in tests.

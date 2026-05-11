@@ -119,6 +119,9 @@ The public API now has the first boring boundary for that work:
   first dry-run-only training loop plan, including paired discriminator and
   generator update counts, so dataset/output/optimizer assumptions are checked
   before real adversarial training is attempted
+- the training dry-run scans a dataset directory recursively and reports
+  supported image files (`.png`, `.jpg`, `.jpeg`, `.bmp`, `.tga`) plus ignored
+  files before any real training work starts
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 

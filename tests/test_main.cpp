@@ -6,6 +6,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -190,8 +191,33 @@ int main() {
 	}
 	std::remove(presetPath.c_str());
 
+	const std::filesystem::path datasetPath = "tiny-gan-dataset-test";
+	std::filesystem::remove_all(datasetPath);
+	std::filesystem::create_directories(datasetPath / "nested");
+	{
+		std::ofstream(datasetPath / "a.png") << "not a real image yet";
+		std::ofstream(datasetPath / "nested" / "b.JPG") << "not a real image yet";
+		std::ofstream(datasetPath / "notes.txt") << "metadata";
+	}
+	const auto datasetScan = ofxGgmlDiffusionScanTinyGanDataset(datasetPath.string());
+	if (!datasetScan.exists ||
+		!datasetScan.isDirectory ||
+		datasetScan.imageCount != 2 ||
+		datasetScan.unsupportedFileCount != 1 ||
+		datasetScan.imagePaths.size() != 2) {
+		std::cerr << "tiny GAN dataset scan failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	const auto missingDatasetScan = ofxGgmlDiffusionScanTinyGanDataset("tiny-gan-missing-dataset-test");
+	if (missingDatasetScan.exists || missingDatasetScan.warnings.empty()) {
+		std::cerr << "missing tiny GAN dataset scan failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+
 	ofxGgmlDiffusionTinyGanTrainingSettings trainingSettings;
-	trainingSettings.datasetPath = "datasets/icons";
+	trainingSettings.datasetPath = datasetPath.string();
 	trainingSettings.outputPresetPath = "models/tiny-trained.ofxggmlgan";
 	trainingSettings.epochs = 2;
 	trainingSettings.batchSize = 8;
@@ -208,10 +234,13 @@ int main() {
 		trainingPlan.batchesPerEpoch != trainingSettings.dryRunBatchesPerEpoch ||
 		trainingPlan.plannedDiscriminatorUpdates != 6 ||
 		trainingPlan.plannedGeneratorUpdates != 6 ||
+		trainingPlan.dataset.imageCount != 2 ||
+		trainingPlan.dataset.unsupportedFileCount != 1 ||
 		trainingPlan.steps.size() != 6 ||
 		trainingPlan.finalDiscriminatorLoss <= 0.0f ||
 		trainingPlan.finalGeneratorLoss <= 0.0f) {
 		std::cerr << "tiny GAN training dry-run plan failed\n";
+		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
 	const auto dryRunSteps = ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(trainingSettings);
@@ -222,26 +251,31 @@ int main() {
 		dryRunSteps.back().batch != 3 ||
 		dryRunSteps.back().generatorLoss >= dryRunSteps.front().generatorLoss) {
 		std::cerr << "tiny GAN dry-run step trace failed\n";
+		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
 	auto invalidTrainingSettings = trainingSettings;
 	invalidTrainingSettings.dryRun = false;
 	if (ofxGgmlDiffusionRunTinyGanTraining(invalidTrainingSettings).isOk()) {
 		std::cerr << "non-dry-run tiny GAN training unexpectedly passed\n";
+		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
 	invalidTrainingSettings = trainingSettings;
 	invalidTrainingSettings.imageWidth = 128;
 	if (ofxGgmlDiffusionValidateTinyGanTraining(invalidTrainingSettings).isOk()) {
 		std::cerr << "invalid tiny GAN training size unexpectedly passed\n";
+		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
 	invalidTrainingSettings = trainingSettings;
 	invalidTrainingSettings.discriminatorHiddenSize = 4;
 	if (ofxGgmlDiffusionValidateTinyGanTraining(invalidTrainingSettings).isOk()) {
 		std::cerr << "invalid tiny GAN discriminator size unexpectedly passed\n";
+		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
+	std::filesystem::remove_all(datasetPath);
 
 	ofxGgmlDiffusionImage image;
 	image.width = 2;

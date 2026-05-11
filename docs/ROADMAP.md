@@ -37,6 +37,8 @@
 - Add a dry-run-only tiny GAN training contract and script with paired
   discriminator/generator update planning so the future dataset/output/optimizer
   path is explicit before real training code lands.
+- Add a recursive dry-run dataset scanner for tiny GAN training that reports
+  supported image counts and ignored files without requiring real training.
 
 ## Next Milestones
 
@@ -49,6 +51,8 @@
 - Implement a toy discriminator/training loop behind the tiny GAN training
   contract with real weight updates, then require repeatable fixture outputs
   before exposing non-dry-run training.
+- Add procedural fixture images for tiny GAN tests so the scanner and future
+  trainer can share deterministic local input.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp
