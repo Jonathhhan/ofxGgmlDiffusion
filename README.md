@@ -128,6 +128,9 @@ The public API now has the first boring boundary for that work:
   normalized float pixels in `[-1, 1]` for the future discriminator path
 - `ofxGgmlDiffusionRunTinyGanDiscriminatorForward()` is a deterministic tiny
   classifier preview over normalized fixture pixels; it is not trained yet
+- `ofxGgmlDiffusionTinyGanBinaryCrossEntropy()` and
+  `ofxGgmlDiffusionComputeTinyGanLossPair()` define the first real/fake loss
+  helpers used by the dry-run trace
 - `ofxGgmlDiffusionUnavailableImageGenerationBackend` lets examples fail
   clearly until a real generator backend is installed
 

@@ -22,6 +22,8 @@ struct ofxGgmlDiffusionTinyGanTrainingSettings {
 struct ofxGgmlDiffusionTinyGanTrainingStep {
 	int epoch = 0;
 	int batch = 0;
+	float realProbability = 0.0f;
+	float fakeProbability = 0.0f;
 	float discriminatorLoss = 0.0f;
 	float generatorLoss = 0.0f;
 };
@@ -66,6 +68,13 @@ struct ofxGgmlDiffusionTinyGanDiscriminatorResult {
 	explicit operator bool() const {
 		return success;
 	}
+};
+
+struct ofxGgmlDiffusionTinyGanLossPair {
+	float realLoss = 0.0f;
+	float fakeLoss = 0.0f;
+	float discriminatorLoss = 0.0f;
+	float generatorLoss = 0.0f;
 };
 
 struct ofxGgmlDiffusionTinyGanTrainingResult {
@@ -115,6 +124,13 @@ std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(
 ofxGgmlDiffusionTinyGanDiscriminatorResult ofxGgmlDiffusionRunTinyGanDiscriminatorForward(
 	const ofxGgmlDiffusionTinyGanImageSample& sample,
 	int hiddenSize);
+float ofxGgmlDiffusionTinyGanBinaryCrossEntropy(
+	float probability,
+	bool targetReal);
+ofxGgmlDiffusionTinyGanLossPair ofxGgmlDiffusionComputeTinyGanLossPair(
+	float realProbability,
+	float fakeProbability,
+	float generatorFakeProbability);
 std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTrainingDryRunSteps(
 	const ofxGgmlDiffusionTinyGanTrainingSettings& settings);
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionPlanTinyGanTraining(

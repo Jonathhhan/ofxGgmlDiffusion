@@ -113,4 +113,6 @@ supports that ASCII fixture format and normalizes RGB bytes to `[-1, 1]`, which
 keeps the first discriminator input path explicit and testable. The first
 discriminator forward pass is a deterministic fixed-weight classifier preview:
 it produces a stable logit/probability for tests and UI planning, but it does
-not claim learned quality.
+not claim learned quality. Binary cross-entropy helpers are the first loss
+surface; they clamp probabilities before applying log loss and keep
+discriminator and generator loss semantics in one tested place.

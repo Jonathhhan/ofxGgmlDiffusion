@@ -45,6 +45,7 @@
   discriminator forward pass.
 - Add a deterministic tiny discriminator forward pass over normalized fixture
   pixels.
+- Add binary classification loss helpers around discriminator probabilities.
 
 ## Next Milestones
 
@@ -57,7 +58,8 @@
 - Implement a toy discriminator/training loop behind the tiny GAN training
   contract with real weight updates, then require repeatable fixture outputs
   before exposing non-dry-run training.
-- Add binary classification loss helpers around discriminator probabilities.
+- Add the first deterministic toy weight-update preview without enabling
+  non-dry-run training.
 - Sketch a small C++ pipeline layer after text-to-image and PhotoMaker are
   proven, so examples can compose request setup without duplicating glue.
 - Add native progress reporting once there is a reliable stable-diffusion.cpp

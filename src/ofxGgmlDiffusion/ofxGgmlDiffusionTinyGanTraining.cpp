@@ -101,6 +101,13 @@ namespace {
 		const int bucket = static_cast<int>(((inputIndex + 1) * static_cast<std::size_t>(hiddenIndex + 3)) % 23);
 		return static_cast<float>(bucket - 11) / 96.0f;
 	}
+
+	float clampProbability(float probability) {
+		if (!std::isfinite(probability)) {
+			return 0.5f;
+		}
+		return std::clamp(probability, 0.000001f, 0.999999f);
+	}
 }
 
 ofxGgmlDiffusionTinyGanTrainingResult ofxGgmlDiffusionValidateTinyGanTraining(
@@ -294,6 +301,25 @@ ofxGgmlDiffusionTinyGanDiscriminatorResult ofxGgmlDiffusionRunTinyGanDiscriminat
 	return result;
 }
 
+float ofxGgmlDiffusionTinyGanBinaryCrossEntropy(
+	float probability,
+	bool targetReal) {
+	const float clamped = clampProbability(probability);
+	return targetReal ? -std::log(clamped) : -std::log(1.0f - clamped);
+}
+
+ofxGgmlDiffusionTinyGanLossPair ofxGgmlDiffusionComputeTinyGanLossPair(
+	float realProbability,
+	float fakeProbability,
+	float generatorFakeProbability) {
+	ofxGgmlDiffusionTinyGanLossPair loss;
+	loss.realLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(realProbability, true);
+	loss.fakeLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(fakeProbability, false);
+	loss.discriminatorLoss = 0.5f * (loss.realLoss + loss.fakeLoss);
+	loss.generatorLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(generatorFakeProbability, true);
+	return loss;
+}
+
 std::vector<float> ofxGgmlDiffusionNormalizeTinyGanImage(
 	const ofxGgmlDiffusionTinyGanImageSample& sample) {
 	std::vector<float> normalized;
@@ -386,11 +412,20 @@ std::vector<ofxGgmlDiffusionTinyGanTrainingStep> ofxGgmlDiffusionBuildTinyGanTra
 		for (int batch = 0; batch < settings.dryRunBatchesPerEpoch; ++batch) {
 			const int index = epoch * settings.dryRunBatchesPerEpoch + batch;
 			const float progress = static_cast<float>(index + 1) / static_cast<float>(totalSteps);
+			const float realProbability = 0.50f + (0.18f * progress);
+			const float fakeProbability = 0.50f - (0.12f * progress);
+			const float generatorFakeProbability = 0.50f + (0.07f * progress);
+			const auto loss = ofxGgmlDiffusionComputeTinyGanLossPair(
+				realProbability,
+				fakeProbability,
+				generatorFakeProbability);
 			ofxGgmlDiffusionTinyGanTrainingStep step;
 			step.epoch = epoch + 1;
 			step.batch = batch + 1;
-			step.discriminatorLoss = 1.3862944f - (0.18f * progress);
-			step.generatorLoss = 0.6931472f - (0.07f * progress);
+			step.realProbability = realProbability;
+			step.fakeProbability = fakeProbability;
+			step.discriminatorLoss = loss.discriminatorLoss;
+			step.generatorLoss = loss.generatorLoss;
 			steps.push_back(step);
 		}
 	}

@@ -253,6 +253,29 @@ int main() {
 		std::filesystem::remove_all(datasetPath);
 		return 1;
 	}
+	const float realGoodLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.9f, true);
+	const float realBadLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.1f, true);
+	const float fakeGoodLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.1f, false);
+	const float fakeBadLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.9f, false);
+	const float clampedLoss = ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.0f, true);
+	if (!(realGoodLoss < realBadLoss) ||
+		!(fakeGoodLoss < fakeBadLoss) ||
+		!std::isfinite(clampedLoss) ||
+		clampedLoss <= realBadLoss) {
+		std::cerr << "tiny GAN BCE helper failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
+	const auto lossPair = ofxGgmlDiffusionComputeTinyGanLossPair(0.8f, 0.2f, 0.7f);
+	if (lossPair.realLoss <= 0.0f ||
+		lossPair.fakeLoss <= 0.0f ||
+		lossPair.discriminatorLoss <= 0.0f ||
+		lossPair.generatorLoss <= 0.0f ||
+		lossPair.generatorLoss >= ofxGgmlDiffusionTinyGanBinaryCrossEntropy(0.3f, true)) {
+		std::cerr << "tiny GAN loss pair failed\n";
+		std::filesystem::remove_all(datasetPath);
+		return 1;
+	}
 	const auto missingDatasetScan = ofxGgmlDiffusionScanTinyGanDataset("tiny-gan-missing-dataset-test");
 	if (missingDatasetScan.exists || missingDatasetScan.warnings.empty()) {
 		std::cerr << "missing tiny GAN dataset scan failed\n";
@@ -293,6 +316,9 @@ int main() {
 		dryRunSteps.front().batch != 1 ||
 		dryRunSteps.back().epoch != 2 ||
 		dryRunSteps.back().batch != 3 ||
+		dryRunSteps.front().realProbability <= 0.0f ||
+		dryRunSteps.front().fakeProbability <= 0.0f ||
+		dryRunSteps.back().discriminatorLoss >= dryRunSteps.front().discriminatorLoss ||
 		dryRunSteps.back().generatorLoss >= dryRunSteps.front().generatorLoss) {
 		std::cerr << "tiny GAN dry-run step trace failed\n";
 		std::filesystem::remove_all(datasetPath);
