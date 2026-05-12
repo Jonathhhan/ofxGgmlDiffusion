@@ -20,6 +20,8 @@
   the text-to-image example.
 - Add a model-free native bridge smoke test that compiles and links against the
   generated stable-diffusion.cpp header/lib.
+- Connect the native stable-diffusion.cpp bridge to the shared
+  `ofxGgmlDiffusionImageGenerationBackend` interface and factory path.
 - Add threaded generation with result-level cancellation around the native
   bridge.
 - Add a typed identity adapter request surface for PhotoMaker without creating
@@ -60,8 +62,6 @@
 
 - Wire PhotoMaker into the native stable-diffusion.cpp bridge after confirming
   the installed C API fields.
-- Connect the existing stable-diffusion.cpp bridge to the shared image backend
-  interface.
 - Choose a small exported generator format and fixture model for the first
   non-builtin GAN inference backend.
 - Implement a toy discriminator/training loop behind the tiny GAN training

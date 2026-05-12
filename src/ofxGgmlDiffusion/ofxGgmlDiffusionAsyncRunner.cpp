@@ -122,9 +122,13 @@ private:
 	void run(
 		const ofxGgmlDiffusionContextSettings& settings,
 		const ofxGgmlDiffusionRequest& request) {
-		ofxGgmlDiffusionNativeBackend backend;
+		auto backend = ofxGgmlMakeNativeDiffusionImageGenerationBackend();
+		if (!backend) {
+			finish(makeRunnerError("diffusion image generation backend was not created"), ofxGgmlDiffusionTaskState::Failed, "setup failed");
+			return;
+		}
 
-		auto setupResult = backend.setup(settings);
+		auto setupResult = backend->setup(settings);
 		if (!setupResult) {
 			finish(setupResult, ofxGgmlDiffusionTaskState::Failed, "setup failed");
 			return;
@@ -135,7 +139,7 @@ private:
 			return;
 		}
 
-		auto generateResult = backend.generate(request);
+		auto generateResult = backend->generate(request);
 		if (cancelRequested.load()) {
 			finish(makeRunnerError("diffusion generation cancelled"), ofxGgmlDiffusionTaskState::Cancelled, "cancelled");
 			return;

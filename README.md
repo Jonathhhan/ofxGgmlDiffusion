@@ -55,7 +55,11 @@ before downloading large diffusion models.
 `ofxGgmlDiffusionNativeBackend` is the first bridge to the generated
 `stable-diffusion.cpp` runtime. It compiles as a clear unavailable stub until
 the native runtime is generated and the app build defines
-`OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`.
+`OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`. It implements the shared
+`ofxGgmlDiffusionImageGenerationBackend` interface and can be constructed with
+`ofxGgmlMakeNativeDiffusionImageGenerationBackend()`, so examples and future
+pipeline helpers can choose between diffusion, GAN, and external image backends
+through one boundary.
 
 The first bridge intentionally supports text-to-image only and returns generated
 pixels in `ofxGgmlDiffusionResult::images`. Use
@@ -119,7 +123,7 @@ The public API now has the first boring boundary for that work:
   optional conditioning image, and class label metadata
 - `makeGanImageRequest()` creates a validated text-to-image GAN request
 - `ofxGgmlDiffusionImageGenerationBackend` is the shared backend interface for
-  future diffusion, GAN, or external image runtimes
+  stable-diffusion.cpp, GAN, or external image runtimes
 - `ofxGgmlDiffusionTinyGanBackend` is the first real ggml proof: a fixed tiny
   MLP generator that runs when Core's ggml headers/libs are installed
 - `scripts\create-tiny-gan-preset.*` writes a small `.ofxggmlgan` preset file

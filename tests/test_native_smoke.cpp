@@ -10,8 +10,20 @@ int main() {
 		std::cerr << "unexpected native backend name\n";
 		return 1;
 	}
+	if (backend.getBackendFamily() != ofxGgmlDiffusionBackendFamily::Diffusion) {
+		std::cerr << "native backend did not report diffusion family\n";
+		return 1;
+	}
 	if (!backend.isAvailable()) {
 		std::cerr << "stable-diffusion.cpp backend is not available in this build\n";
+		return 1;
+	}
+	auto backendInterface = ofxGgmlMakeNativeDiffusionImageGenerationBackend();
+	if (!backendInterface ||
+		backendInterface->getBackendName() != "stable-diffusion.cpp" ||
+		backendInterface->getBackendFamily() != ofxGgmlDiffusionBackendFamily::Diffusion ||
+		!backendInterface->isAvailable()) {
+		std::cerr << "native backend factory did not return an available image generation backend\n";
 		return 1;
 	}
 	if (backend.isLoaded()) {

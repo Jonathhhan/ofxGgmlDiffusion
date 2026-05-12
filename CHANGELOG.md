@@ -8,6 +8,8 @@
 - Added an optional headless native bridge smoke test for compiling and linking
   against the generated `stable-diffusion.cpp` header/lib without requiring a
   model download.
+- Connected `ofxGgmlDiffusionNativeBackend` to the shared image generation
+  backend interface and factory path used by other image backends.
 
 ## 1.0.1 - 2026-05-12
 

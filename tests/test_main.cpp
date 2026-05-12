@@ -414,6 +414,22 @@ int main() {
 		std::cerr << "unexpected native backend name\n";
 		return 1;
 	}
+	if (backend.getBackendFamily() != ofxGgmlDiffusionBackendFamily::Diffusion) {
+		std::cerr << "native backend did not report diffusion family\n";
+		return 1;
+	}
+	auto nativeInterface = ofxGgmlMakeNativeDiffusionImageGenerationBackend();
+	if (!nativeInterface ||
+		nativeInterface->getBackendName() != "stable-diffusion.cpp" ||
+		nativeInterface->getBackendFamily() != ofxGgmlDiffusionBackendFamily::Diffusion) {
+		std::cerr << "native backend factory did not return image generation interface\n";
+		return 1;
+	}
+	const auto nativeInterfaceSetup = nativeInterface->setup(ofxGgmlDiffusionContextSettings{});
+	if (nativeInterfaceSetup.isOk()) {
+		std::cerr << "native interface setup succeeded without model/runtime\n";
+		return 1;
+	}
 	if (backend.isLoaded()) {
 		std::cerr << "native backend reported loaded before setup\n";
 		return 1;

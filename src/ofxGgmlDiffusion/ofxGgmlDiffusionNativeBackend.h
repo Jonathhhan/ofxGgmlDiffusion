@@ -1,10 +1,11 @@
 #pragma once
 
-#include "ofxGgmlDiffusionTypes.h"
+#include "ofxGgmlDiffusionImageGenerationBackend.h"
 
 #include <memory>
 
-class ofxGgmlDiffusionNativeBackend {
+class ofxGgmlDiffusionNativeBackend
+	: public ofxGgmlDiffusionImageGenerationBackend {
 public:
 	ofxGgmlDiffusionNativeBackend();
 	~ofxGgmlDiffusionNativeBackend();
@@ -15,16 +16,20 @@ public:
 	ofxGgmlDiffusionNativeBackend(const ofxGgmlDiffusionNativeBackend&) = delete;
 	ofxGgmlDiffusionNativeBackend& operator=(const ofxGgmlDiffusionNativeBackend&) = delete;
 
-	bool isAvailable() const;
-	bool isLoaded() const;
-	std::string getBackendName() const;
+	std::string getBackendName() const override;
+	ofxGgmlDiffusionBackendFamily getBackendFamily() const override;
+	bool isAvailable() const override;
+	bool isLoaded() const override;
 	ofxGgmlDiffusionContextSettings getSettings() const;
 
-	ofxGgmlDiffusionResult setup(const ofxGgmlDiffusionContextSettings& settings);
-	ofxGgmlDiffusionResult generate(const ofxGgmlDiffusionRequest& request);
+	ofxGgmlDiffusionResult setup(const ofxGgmlDiffusionContextSettings& settings) override;
+	ofxGgmlDiffusionResult generate(const ofxGgmlDiffusionRequest& request) override;
 	void close();
 
 private:
 	struct Impl;
 	std::unique_ptr<Impl> impl;
 };
+
+std::unique_ptr<ofxGgmlDiffusionImageGenerationBackend>
+ofxGgmlMakeNativeDiffusionImageGenerationBackend();

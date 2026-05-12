@@ -60,6 +60,8 @@ Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionTinyGanT
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionTinyGanTraining.cpp") "tiny GAN training source"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "native backend header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.cpp") "native backend source"
+Assert-FileContains (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "ofxGgmlDiffusionImageGenerationBackend" "native backend interface"
+Assert-FileContains (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "ofxGgmlMakeNativeDiffusionImageGenerationBackend" "native backend factory"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionAsyncRunner.h") "async runner header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionAsyncRunner.cpp") "async runner source"
 

@@ -154,6 +154,10 @@ std::string ofxGgmlDiffusionNativeBackend::getBackendName() const {
 	return "stable-diffusion.cpp";
 }
 
+ofxGgmlDiffusionBackendFamily ofxGgmlDiffusionNativeBackend::getBackendFamily() const {
+	return ofxGgmlDiffusionBackendFamily::Diffusion;
+}
+
 ofxGgmlDiffusionContextSettings ofxGgmlDiffusionNativeBackend::getSettings() const {
 	return impl ? impl->settings : ofxGgmlDiffusionContextSettings{};
 }
@@ -284,4 +288,9 @@ void ofxGgmlDiffusionNativeBackend::close() {
 	if (impl) {
 		impl->close();
 	}
+}
+
+std::unique_ptr<ofxGgmlDiffusionImageGenerationBackend>
+ofxGgmlMakeNativeDiffusionImageGenerationBackend() {
+	return std::make_unique<ofxGgmlDiffusionNativeBackend>();
 }
