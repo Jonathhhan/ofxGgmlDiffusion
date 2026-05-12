@@ -32,6 +32,7 @@ scripts\build-stable-diffusion.bat -DryRun
 scripts\build-stable-diffusion.bat -CpuOnly
 scripts\build-stable-diffusion.bat -Cuda
 scripts\build-stable-diffusion.bat -BundledGgml
+scripts\test-stable-diffusion-native.bat
 ```
 
 The script defaults to `-Auto`, reuses ggml from sibling addon
@@ -42,6 +43,12 @@ against its own vendored ggml copy.
 
 Generated source, build trees, libraries, executables, models, and output media
 stay out of git.
+
+`scripts\test-stable-diffusion-native.bat` is a model-free smoke test. It
+compiles and links the addon bridge against the generated native header/lib,
+then checks the explicit missing-model and missing-context error paths. Use it
+after `scripts\build-stable-diffusion.bat` to verify the local runtime boundary
+before downloading large diffusion models.
 
 ## Native Backend
 

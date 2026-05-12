@@ -18,6 +18,8 @@
   accepts a user-provided local model.
 - Add generated-project build/run scripts plus launch dry-run validation for
   the text-to-image example.
+- Add a model-free native bridge smoke test that compiles and links against the
+  generated stable-diffusion.cpp header/lib.
 - Add threaded generation with result-level cancellation around the native
   bridge.
 - Add a typed identity adapter request surface for PhotoMaker without creating

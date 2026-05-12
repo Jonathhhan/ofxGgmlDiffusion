@@ -84,6 +84,7 @@ Assert-Path (Join-Path $ganExampleRoot "src\ofApp.h") "GAN example ofApp.h"
 Assert-Path (Join-Path $ganExampleRoot "src\ofApp.cpp") "GAN example ofApp.cpp"
 Assert-Path (Join-Path $addonRoot "tests\CMakeLists.txt") "test CMakeLists"
 Assert-Path (Join-Path $addonRoot "tests\test_main.cpp") "test source"
+Assert-Path (Join-Path $addonRoot "tests\test_native_smoke.cpp") "native bridge smoke test source"
 Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.ps1") "stable-diffusion build script"
 Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.bat") "stable-diffusion Windows build wrapper"
 Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.sh") "stable-diffusion shell build wrapper"
@@ -93,6 +94,9 @@ Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.sh") "stable-diffusio
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.ps1") "stable-diffusion dry-run test"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.bat") "stable-diffusion Windows dry-run test wrapper"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.sh") "stable-diffusion shell dry-run test wrapper"
+Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.ps1") "stable-diffusion native smoke script"
+Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.bat") "stable-diffusion native smoke Windows wrapper"
+Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.sh") "stable-diffusion native smoke shell wrapper"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.ps1") "diffusion example build script"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.bat") "diffusion example Windows build wrapper"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.sh") "diffusion example shell build wrapper"
@@ -144,6 +148,13 @@ foreach ($relative in $forbidden) {
 
 Write-Step "Checking stable-diffusion.cpp setup dry-runs"
 & (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.ps1")
+
+Write-Step "Checking stable-diffusion.cpp native smoke dry-run"
+$nativeSmokeDryRun = & (Join-Path $scriptRoot "test-stable-diffusion-native.ps1") -DryRun 2>&1 6>&1 | Out-String
+if (!$nativeSmokeDryRun.Contains("stable-diffusion.cpp native smoke plan") -or
+	!$nativeSmokeDryRun.Contains("Dry run complete; no files were changed")) {
+	throw "stable-diffusion.cpp native smoke dry-run output was unexpected:`n$nativeSmokeDryRun"
+}
 
 Write-Step "Checking launch dry-runs"
 & (Join-Path $scriptRoot "test-launch-dry-run.ps1")
