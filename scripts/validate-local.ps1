@@ -93,6 +93,9 @@ Assert-Path (Join-Path $addonRoot "tests\test_native_smoke.cpp") "native bridge 
 Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.ps1") "stable-diffusion build script"
 Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.bat") "stable-diffusion Windows build wrapper"
 Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.sh") "stable-diffusion shell build wrapper"
+Assert-Path (Join-Path $scriptRoot "doctor-diffusion.ps1") "diffusion doctor script"
+Assert-Path (Join-Path $scriptRoot "doctor-diffusion.bat") "diffusion doctor Windows wrapper"
+Assert-Path (Join-Path $scriptRoot "doctor-diffusion.sh") "diffusion doctor shell wrapper"
 Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.ps1") "stable-diffusion setup script"
 Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.bat") "stable-diffusion Windows setup wrapper"
 Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.sh") "stable-diffusion shell setup wrapper"
@@ -103,6 +106,8 @@ Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.ps1") "stable-d
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.bat") "stable-diffusion native smoke Windows wrapper"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.sh") "stable-diffusion native smoke shell wrapper"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.ps1") "diffusion example build script"
+Assert-FileContains (Join-Path $scriptRoot "build-diffusion-example.ps1") "Repair-DiffusionGeneratedProject" "diffusion generated project repair"
+Assert-FileContains (Join-Path $scriptRoot "build-diffusion-example.ps1") "Initialize-DiffusionGeneratedProject" "diffusion generated project initializer"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.bat") "diffusion example Windows build wrapper"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.sh") "diffusion example shell build wrapper"
 Assert-Path (Join-Path $scriptRoot "run-diffusion-example.ps1") "diffusion example run script"
@@ -159,6 +164,14 @@ $nativeSmokeDryRun = & (Join-Path $scriptRoot "test-stable-diffusion-native.ps1"
 if (!$nativeSmokeDryRun.Contains("stable-diffusion.cpp native smoke plan") -or
 	!$nativeSmokeDryRun.Contains("Dry run complete; no files were changed")) {
 	throw "stable-diffusion.cpp native smoke dry-run output was unexpected:`n$nativeSmokeDryRun"
+}
+
+Write-Step "Checking diffusion doctor smoke"
+$doctorOutput = & (Join-Path $scriptRoot "doctor-diffusion.ps1") 2>&1 6>&1 | Out-String
+if (!$doctorOutput.Contains("ofxGgmlDiffusion doctor") -or
+	!$doctorOutput.Contains("PhotoMaker") -or
+	!$doctorOutput.Contains("Suggested next checks")) {
+	throw "diffusion doctor output was unexpected:`n$doctorOutput"
 }
 
 Write-Step "Checking launch dry-runs"

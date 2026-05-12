@@ -57,9 +57,9 @@ namespace ofxGgmlDiffusionImageUtils {
 		if (!pixels.isAllocated()) {
 			return image;
 		}
-		image.width = pixels.getWidth();
-		image.height = pixels.getHeight();
-		image.channels = pixels.getNumChannels();
+		image.width = static_cast<int>(pixels.getWidth());
+		image.height = static_cast<int>(pixels.getHeight());
+		image.channels = static_cast<int>(pixels.getNumChannels());
 		image.pixels.assign(pixels.getData(), pixels.getData() + pixels.size());
 		return image;
 	}

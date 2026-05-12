@@ -14,6 +14,8 @@
   PhotoMaker fields and exposed `photoMakerPath` on context settings.
 - Added decoded PhotoMaker reference images, native `pm_params` mapping, and
   optional PhotoMaker environment setup in the prompt example.
+- Added `scripts\doctor-diffusion.*` to report local runtime, model,
+  generated-project, and PhotoMaker setup state before heavy generation.
 
 ## 1.0.1 - 2026-05-12
 

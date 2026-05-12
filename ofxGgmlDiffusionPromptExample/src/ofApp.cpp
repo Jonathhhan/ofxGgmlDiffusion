@@ -6,6 +6,24 @@
 #include <utility>
 #include <vector>
 
+namespace {
+std::string getEnvironmentVariable(const std::string& name) {
+#if defined(_MSC_VER)
+	char* value = nullptr;
+	size_t valueSize = 0;
+	if (_dupenv_s(&value, &valueSize, name.c_str()) != 0 || value == nullptr) {
+		return "";
+	}
+	std::string result(value);
+	std::free(value);
+	return result;
+#else
+	const char* value = std::getenv(name.c_str());
+	return value != nullptr ? value : "";
+#endif
+}
+}
+
 void ofApp::setup() {
 	ofSetWindowTitle("ofxGgmlDiffusion text-to-image example");
 	request = ofxGgmlDiffusionUtils::makeTextToImageRequest("a small generative texture study, openFrameworks, soft light");
@@ -91,8 +109,8 @@ void ofApp::applyResult(const ofxGgmlDiffusionResult& result) {
 }
 
 std::string ofApp::findModelPath() const {
-	const char* envModel = std::getenv("OFXGGML_DIFFUSION_MODEL");
-	if (envModel && ofFile::doesFileExist(envModel, false)) {
+	const auto envModel = getEnvironmentVariable("OFXGGML_DIFFUSION_MODEL");
+	if (!envModel.empty() && ofFile::doesFileExist(envModel, false)) {
 		return envModel;
 	}
 
@@ -111,8 +129,8 @@ std::string ofApp::findModelPath() const {
 }
 
 std::string ofApp::findPhotoMakerPath() const {
-	const char* envModel = std::getenv("OFXGGML_PHOTOMAKER_MODEL");
-	if (envModel && ofFile::doesFileExist(envModel, false)) {
+	const auto envModel = getEnvironmentVariable("OFXGGML_PHOTOMAKER_MODEL");
+	if (!envModel.empty() && ofFile::doesFileExist(envModel, false)) {
 		return envModel;
 	}
 	const auto candidate = ofToDataPath("models/photomaker.safetensors", true);
@@ -126,8 +144,8 @@ bool ofApp::loadPhotoMakerReferences() {
 	if (settings.photoMakerPath.empty()) {
 		return false;
 	}
-	const char* envRefs = std::getenv("OFXGGML_PHOTOMAKER_REFS");
-	if (!envRefs || std::string(envRefs).empty()) {
+	const auto envRefs = getEnvironmentVariable("OFXGGML_PHOTOMAKER_REFS");
+	if (envRefs.empty()) {
 		return false;
 	}
 

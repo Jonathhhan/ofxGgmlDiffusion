@@ -33,6 +33,7 @@ scripts\build-stable-diffusion.bat -CpuOnly
 scripts\build-stable-diffusion.bat -Cuda
 scripts\build-stable-diffusion.bat -BundledGgml
 scripts\test-stable-diffusion-native.bat
+scripts\doctor-diffusion.bat
 ```
 
 The script defaults to `-Auto`, reuses ggml from sibling addon
@@ -50,6 +51,10 @@ confirms the PhotoMaker C API fields are present, then checks the explicit
 missing-model and missing-context error paths. Use it after
 `scripts\build-stable-diffusion.bat` to verify the local runtime boundary before
 downloading large diffusion models.
+
+`scripts\doctor-diffusion.bat` checks the local runtime, generated example
+project, diffusion model env var, and optional PhotoMaker env vars without
+starting generation. Run it before a heavy model smoke.
 
 ## Native Backend
 
