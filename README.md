@@ -46,9 +46,10 @@ stay out of git.
 
 `scripts\test-stable-diffusion-native.bat` is a model-free smoke test. It
 compiles and links the addon bridge against the generated native header/lib,
-then checks the explicit missing-model and missing-context error paths. Use it
-after `scripts\build-stable-diffusion.bat` to verify the local runtime boundary
-before downloading large diffusion models.
+confirms the PhotoMaker C API fields are present, then checks the explicit
+missing-model and missing-context error paths. Use it after
+`scripts\build-stable-diffusion.bat` to verify the local runtime boundary before
+downloading large diffusion models.
 
 ## Native Backend
 
@@ -87,12 +88,18 @@ request.identityAdapter = ofxGgmlDiffusionUtils::makePhotoMakerAdapter(
 	"models/photomaker.safetensors",
 	{"references/person-01.jpg", "references/person-02.jpg"},
 	"img");
+
+ofxGgmlDiffusionContextSettings context;
+context.modelPath = "models/sdxl.safetensors";
+context.photoMakerPath = request.identityAdapter.modelPath;
 ```
 
 The current native bridge returns a clear error instead of silently ignoring an
 identity adapter. The typed request surface and validation are ready first; the
-actual PhotoMaker call should be wired after confirming the installed
-stable-diffusion.cpp header.
+native capability smoke now confirms that the installed stable-diffusion.cpp
+header exposes the required PhotoMaker context and image parameter fields. The
+remaining bridge work is loading reference images and passing request
+`identityAdapter` data into `sd_img_gen_params_t::pm_params`.
 
 ## Diffusers Reference
 

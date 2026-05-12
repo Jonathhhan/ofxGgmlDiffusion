@@ -3,6 +3,18 @@
 #include "ofxGgmlDiffusionImageGenerationBackend.h"
 
 #include <memory>
+#include <string>
+
+struct ofxGgmlDiffusionNativeCapabilities {
+	bool stableDiffusionEnabled = false;
+	bool photoMakerContextPath = false;
+	bool photoMakerImageParams = false;
+
+	bool supportsPhotoMaker() const;
+	std::string describe() const;
+};
+
+ofxGgmlDiffusionNativeCapabilities ofxGgmlDiffusionGetNativeCapabilities();
 
 class ofxGgmlDiffusionNativeBackend
 	: public ofxGgmlDiffusionImageGenerationBackend {

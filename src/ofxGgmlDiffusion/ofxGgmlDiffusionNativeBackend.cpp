@@ -102,6 +102,46 @@ namespace {
 #endif
 }
 
+bool ofxGgmlDiffusionNativeCapabilities::supportsPhotoMaker() const {
+	return stableDiffusionEnabled && photoMakerContextPath && photoMakerImageParams;
+}
+
+std::string ofxGgmlDiffusionNativeCapabilities::describe() const {
+	std::ostringstream stream;
+	stream << "stable-diffusion.cpp "
+		   << (stableDiffusionEnabled ? "enabled" : "disabled")
+		   << ", PhotoMaker context "
+		   << (photoMakerContextPath ? "available" : "missing")
+		   << ", PhotoMaker image params "
+		   << (photoMakerImageParams ? "available" : "missing");
+	return stream.str();
+}
+
+ofxGgmlDiffusionNativeCapabilities ofxGgmlDiffusionGetNativeCapabilities() {
+	ofxGgmlDiffusionNativeCapabilities capabilities;
+	capabilities.stableDiffusionEnabled = OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION != 0;
+#if OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION
+	sd_ctx_params_t contextParams{};
+	sd_ctx_params_init(&contextParams);
+	contextParams.photo_maker_path = nullptr;
+
+	sd_img_gen_params_t imageParams{};
+	sd_img_gen_params_init(&imageParams);
+	imageParams.pm_params.id_images = nullptr;
+	imageParams.pm_params.id_images_count = 0;
+	imageParams.pm_params.id_embed_path = nullptr;
+	imageParams.pm_params.style_strength = 1.0f;
+
+	capabilities.photoMakerContextPath = contextParams.photo_maker_path == nullptr;
+	capabilities.photoMakerImageParams =
+		imageParams.pm_params.id_images == nullptr &&
+		imageParams.pm_params.id_images_count == 0 &&
+		imageParams.pm_params.id_embed_path == nullptr &&
+		imageParams.pm_params.style_strength == 1.0f;
+#endif
+	return capabilities;
+}
+
 struct ofxGgmlDiffusionNativeBackend::Impl {
 	ofxGgmlDiffusionContextSettings settings;
 #if OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION
@@ -183,6 +223,7 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::setup(const ofxGgmlDiffusi
 	params.t5xxl_path = emptyToNull(settings.t5xxlPath);
 	params.vae_path = emptyToNull(settings.vaePath);
 	params.taesd_path = emptyToNull(settings.taesdPath);
+	params.photo_maker_path = emptyToNull(settings.photoMakerPath);
 	params.n_threads = settings.threads;
 	params.enable_mmap = settings.mmap;
 	params.flash_attn = settings.flashAttention;

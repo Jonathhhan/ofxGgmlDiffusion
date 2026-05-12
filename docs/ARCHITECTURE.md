@@ -55,8 +55,12 @@ interrupt should be added only when the native API exposes a reliable hook.
 PhotoMaker is treated as an identity adapter inside diffusion. Keep the public
 shape generic enough for future identity workflows, but do not split
 `ofxGgmlPhotoMaker` unless several non-diffusion consumers need the same layer.
-The first milestone is typed request validation; native stable-diffusion.cpp
-wiring should follow only after the installed header is verified locally.
+The first milestone is typed request validation plus native capability
+verification. `ofxGgmlDiffusionNativeCapabilities` reports whether the current
+build has stable-diffusion.cpp enabled and whether the installed header exposes
+the PhotoMaker context path and image parameter fields. Real generation still
+needs the reference image loader before request identity adapter data can be
+passed into `sd_img_gen_params_t::pm_params`.
 
 ## Diffusers Reference
 

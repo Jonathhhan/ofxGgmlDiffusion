@@ -62,6 +62,8 @@ Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBa
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.cpp") "native backend source"
 Assert-FileContains (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "ofxGgmlDiffusionImageGenerationBackend" "native backend interface"
 Assert-FileContains (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "ofxGgmlMakeNativeDiffusionImageGenerationBackend" "native backend factory"
+Assert-FileContains (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionNativeBackend.h") "ofxGgmlDiffusionNativeCapabilities" "native capability descriptor"
+Assert-FileContains (Join-Path $addonRoot "tests\test_native_smoke.cpp") "supportsPhotoMaker" "native PhotoMaker capability smoke"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionAsyncRunner.h") "async runner header"
 Assert-Path (Join-Path $addonRoot "src\ofxGgmlDiffusion\ofxGgmlDiffusionAsyncRunner.cpp") "async runner source"
 

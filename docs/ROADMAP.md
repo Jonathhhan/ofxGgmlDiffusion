@@ -26,6 +26,8 @@
   bridge.
 - Add a typed identity adapter request surface for PhotoMaker without creating
   a separate addon.
+- Add a native capability descriptor and smoke coverage for the installed
+  stable-diffusion.cpp PhotoMaker C API fields.
 - Adopt Diffusers-inspired vocabulary for future pipelines, schedulers, model
   families, and adapters without taking a Python runtime dependency.
 - Define GAN-style image generation as an image backend family that belongs in
@@ -60,8 +62,8 @@
 
 ## Next Milestones
 
-- Wire PhotoMaker into the native stable-diffusion.cpp bridge after confirming
-  the installed C API fields.
+- Wire PhotoMaker reference image loading into the native stable-diffusion.cpp
+  bridge and pass request identity adapter data into `pm_params`.
 - Choose a small exported generator format and fixture model for the first
   non-builtin GAN inference backend.
 - Implement a toy discriminator/training loop behind the tiny GAN training

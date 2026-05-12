@@ -91,6 +91,22 @@ int main() {
 		std::cerr << "PhotoMaker request without references passed validation\n";
 		return 1;
 	}
+	ofxGgmlDiffusionContextSettings identityContext;
+	identityContext.modelPath = "models/sdxl.safetensors";
+	identityContext.photoMakerPath = identityRequest.identityAdapter.modelPath;
+	if (!identityContext.hasAnyModelPath() ||
+		identityContext.photoMakerPath != "models/photomaker.safetensors") {
+		std::cerr << "PhotoMaker context settings failed\n";
+		return 1;
+	}
+	const auto nativeCapabilities = ofxGgmlDiffusionGetNativeCapabilities();
+	if (nativeCapabilities.stableDiffusionEnabled ||
+		nativeCapabilities.supportsPhotoMaker() ||
+		nativeCapabilities.describe().find("disabled") == std::string::npos) {
+		std::cerr << "default native capabilities were unexpected: "
+				  << nativeCapabilities.describe() << "\n";
+		return 1;
+	}
 
 	auto inpaint = request;
 	inpaint.mode = ofxGgmlDiffusionMode::Inpainting;

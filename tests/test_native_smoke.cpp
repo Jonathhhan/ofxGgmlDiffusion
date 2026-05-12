@@ -18,6 +18,12 @@ int main() {
 		std::cerr << "stable-diffusion.cpp backend is not available in this build\n";
 		return 1;
 	}
+	const auto capabilities = ofxGgmlDiffusionGetNativeCapabilities();
+	if (!capabilities.stableDiffusionEnabled || !capabilities.supportsPhotoMaker()) {
+		std::cerr << "native capabilities missing expected PhotoMaker API fields: "
+				  << capabilities.describe() << "\n";
+		return 1;
+	}
 	auto backendInterface = ofxGgmlMakeNativeDiffusionImageGenerationBackend();
 	if (!backendInterface ||
 		backendInterface->getBackendName() != "stable-diffusion.cpp" ||

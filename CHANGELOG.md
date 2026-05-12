@@ -10,6 +10,8 @@
   model download.
 - Connected `ofxGgmlDiffusionNativeBackend` to the shared image generation
   backend interface and factory path used by other image backends.
+- Added native capability reporting for installed stable-diffusion.cpp
+  PhotoMaker fields and exposed `photoMakerPath` on context settings.
 
 ## 1.0.1 - 2026-05-12
 

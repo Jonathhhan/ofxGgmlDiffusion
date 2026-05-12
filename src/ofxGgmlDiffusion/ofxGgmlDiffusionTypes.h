@@ -111,6 +111,7 @@ struct ofxGgmlDiffusionContextSettings {
 	std::string loraDirectory;
 	std::string embeddingDirectory;
 	std::string upscalerModelPath;
+	std::string photoMakerPath;
 	ofxGgmlDiffusionModelFamily modelFamily = ofxGgmlDiffusionModelFamily::Unknown;
 	int threads = -1;
 	bool vaeTiling = false;
