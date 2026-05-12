@@ -1,0 +1,26 @@
+{
+  "name": "ofxGgmlDiffusion",
+  "lane": "image-generation",
+  "coreBaseline": "v1.0.1",
+  "requires": [
+    "ofxGgmlCore"
+  ],
+  "owns": [
+    "diffusion",
+    "text-to-image",
+    "GAN boundaries",
+    "PhotoMaker",
+    "generated-project repair"
+  ],
+  "platforms": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "backends": [
+    "cpu",
+    "cuda",
+    "metal",
+    "vulkan"
+  ]
+}
