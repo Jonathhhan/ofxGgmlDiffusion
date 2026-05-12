@@ -30,6 +30,27 @@ Assert-Contains $defaultOutput "-DSD_USE_SYSTEM_GGML=ON" "default dry-run"
 Assert-Contains $defaultOutput "-DSD_BUILD_EXAMPLES=OFF" "default dry-run"
 Assert-Contains $defaultOutput "Dry run complete; no files were changed" "default dry-run"
 
+Write-Step "stable-diffusion Core-constrained auto dry-run"
+$fakeCore = Join-Path ([System.IO.Path]::GetTempPath()) "ofxGgmlDiffusion-fake-core"
+$fakeInclude = Join-Path $fakeCore "libs\ggml\include"
+$fakeLib = Join-Path $fakeCore "libs\ggml\lib"
+New-Item -ItemType Directory -Force -Path $fakeInclude | Out-Null
+New-Item -ItemType Directory -Force -Path $fakeLib | Out-Null
+foreach ($file in @(
+	(Join-Path $fakeInclude "ggml.h"),
+	(Join-Path $fakeLib "ggml.lib"),
+	(Join-Path $fakeLib "ggml-base.lib"),
+	(Join-Path $fakeLib "ggml-cpu.lib")
+)) {
+	if (!(Test-Path -LiteralPath $file -PathType Leaf)) {
+		New-Item -ItemType File -Path $file | Out-Null
+	}
+}
+$coreConstrainedOutput = & $script -DryRun -OfxGgmlCorePath $fakeCore 2>&1 6>&1 | Out-String
+Assert-Contains $coreConstrainedOutput "mode: Auto" "Core-constrained dry-run"
+Assert-Contains $coreConstrainedOutput "CUDA=OFF" "Core-constrained dry-run"
+Assert-Contains $coreConstrainedOutput "Vulkan=OFF" "Core-constrained dry-run"
+
 Write-Step "stable-diffusion CPU-only dry-run"
 $cpuOutput = & $script -DryRun -CpuOnly 2>&1 6>&1 | Out-String
 Assert-Contains $cpuOutput "mode: CpuOnly" "CPU-only dry-run"

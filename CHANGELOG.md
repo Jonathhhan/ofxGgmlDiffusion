@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Constrained `scripts\build-stable-diffusion.* -Auto` to enable GPU backends
+  only when both the host toolchain and the sibling `ofxGgmlCore` ggml backend
+  library are present.
+
 ## 1.0.1 - 2026-05-12
 
 - Added independent Diffusion addon version metadata.

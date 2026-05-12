@@ -63,6 +63,23 @@ function Test-OpenCLAvailable {
 	return [bool]$env:OPENCL_ROOT -or [bool](Get-CommandPathOrNull "clinfo")
 }
 
+function Test-CoreGgmlLibraryAvailable {
+	param(
+		[string]$CorePath,
+		[string]$WindowsLibraryName,
+		[string]$UnixLibraryName
+	)
+	if ([string]::IsNullOrWhiteSpace($CorePath)) {
+		return $false
+	}
+	$libDir = Join-Path $CorePath "libs\ggml\lib"
+	if (!(Test-Path -LiteralPath $libDir -PathType Container)) {
+		return $false
+	}
+	$libraryName = if (Test-WindowsHost) { $WindowsLibraryName } else { $UnixLibraryName }
+	return (Test-Path -LiteralPath (Join-Path $libDir $libraryName) -PathType Leaf)
+}
+
 function Get-DefaultGenerator {
 	if (![string]::IsNullOrWhiteSpace($Generator)) {
 		return $Generator
@@ -228,6 +245,12 @@ if ($CpuOnly) {
 		$enableVulkan = Test-VulkanAvailable
 		$enableMetal = Test-MetalAvailable
 		$enableOpenCL = Test-OpenCLAvailable
+		if (!$BundledGgml) {
+			$enableCuda = $enableCuda -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-cuda.lib" -UnixLibraryName "libggml-cuda.a")
+			$enableVulkan = $enableVulkan -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-vulkan.lib" -UnixLibraryName "libggml-vulkan.a")
+			$enableMetal = $enableMetal -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-metal.lib" -UnixLibraryName "libggml-metal.a")
+			$enableOpenCL = $enableOpenCL -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-opencl.lib" -UnixLibraryName "libggml-opencl.a")
+		}
 	} else {
 		$enableCuda = [bool]$Cuda
 		$enableVulkan = [bool]$Vulkan
@@ -237,17 +260,43 @@ if ($CpuOnly) {
 	}
 }
 
+if ($enableCuda -and !(Test-CudaAvailable)) {
+	$enableCuda = $false
+}
+if ($enableVulkan -and !(Test-VulkanAvailable)) {
+	$enableVulkan = $false
+}
+if ($enableMetal -and !(Test-MetalAvailable)) {
+	$enableMetal = $false
+}
+if ($enableOpenCL -and !(Test-OpenCLAvailable)) {
+	$enableOpenCL = $false
+}
+if (!$BundledGgml) {
+	if ($enableCuda -and !(Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-cuda.lib" -UnixLibraryName "libggml-cuda.a")) {
+		$enableCuda = $false
+	}
+	if ($enableVulkan -and !(Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-vulkan.lib" -UnixLibraryName "libggml-vulkan.a")) {
+		$enableVulkan = $false
+	}
+	if ($enableMetal -and !(Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-metal.lib" -UnixLibraryName "libggml-metal.a")) {
+		$enableMetal = $false
+	}
+	if ($enableOpenCL -and !(Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-opencl.lib" -UnixLibraryName "libggml-opencl.a")) {
+		$enableOpenCL = $false
+	}
+}
 if ($Cuda -and !$enableCuda) {
-	throw "CUDA was requested but CUDA Toolkit was not found. Use default -Auto to skip unavailable backends."
+	throw "CUDA was requested but CUDA Toolkit or ofxGgmlCore ggml-cuda runtime was not found. Build Core with CUDA first or use default -Auto to skip unavailable backends."
 }
 if ($Vulkan -and !$enableVulkan) {
-	throw "Vulkan was requested but Vulkan SDK/tools were not found. Use default -Auto to skip unavailable backends."
+	throw "Vulkan was requested but Vulkan SDK/tools or ofxGgmlCore ggml-vulkan runtime was not found. Build Core with Vulkan first or use default -Auto to skip unavailable backends."
 }
 if ($Metal -and !$enableMetal) {
-	throw "Metal was requested but this host does not look like a macOS/Xcode environment."
+	throw "Metal was requested but this host does not look like a macOS/Xcode environment or ofxGgmlCore ggml-metal runtime was not found."
 }
 if ($OpenCL -and !$enableOpenCL) {
-	throw "OpenCL was requested but OpenCL tools/root were not found. Use default -Auto to skip unavailable backends."
+	throw "OpenCL was requested but OpenCL tools/root or ofxGgmlCore ggml-opencl runtime was not found. Use default -Auto to skip unavailable backends."
 }
 
 $resolvedGenerator = Get-DefaultGenerator
