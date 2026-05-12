@@ -4,6 +4,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
+#include "ofxGgmlDiffusionVersion.h"
 
 #include <cmath>
 #include <cstdio>
@@ -12,6 +13,15 @@
 #include <iostream>
 
 int main() {
+	if (OFXGGML_DIFFUSION_VERSION_MAJOR != 1 ||
+		OFXGGML_DIFFUSION_VERSION_MINOR != 0 ||
+		OFXGGML_DIFFUSION_VERSION_PATCH != 1 ||
+		std::string(OFXGGML_DIFFUSION_VERSION_STRING) != "1.0.1" ||
+		std::string(ofxGgmlDiffusionGetVersionString()) != "1.0.1") {
+		std::cerr << "unexpected diffusion addon version metadata\n";
+		return 1;
+	}
+
 	ofxGgmlDiffusionRequest request;
 	if (ofxGgmlDiffusionUtils::hasInput(request)) {
 		std::cerr << "empty request reported as configured\n";

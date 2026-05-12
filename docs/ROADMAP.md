@@ -52,6 +52,7 @@
   keeping file writes opt-in and tested.
 - Use the preview preset output in the GAN example run path as a selectable
   local generator descriptor.
+- Add independent addon version metadata and release-candidate docs.
 
 ## Next Milestones
 

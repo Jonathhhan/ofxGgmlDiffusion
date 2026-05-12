@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ofxGgmlDiffusionVersion.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTypes.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionImageUtils.h"
