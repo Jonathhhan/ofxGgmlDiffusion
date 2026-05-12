@@ -91,6 +91,24 @@ int main() {
 		std::cerr << "PhotoMaker request without references passed validation\n";
 		return 1;
 	}
+	auto decodedIdentity = identityRequest;
+	decodedIdentity.identityAdapter.referenceImagePaths.clear();
+	ofxGgmlDiffusionImage referenceImage;
+	referenceImage.width = 2;
+	referenceImage.height = 2;
+	referenceImage.channels = 3;
+	referenceImage.pixels.resize(2 * 2 * 3, 127);
+	decodedIdentity.identityAdapter.referenceImages.push_back(referenceImage);
+	if (ofxGgmlDiffusionUtils::validate(decodedIdentity).isError()) {
+		std::cerr << "PhotoMaker request with decoded reference image failed validation\n";
+		return 1;
+	}
+	auto invalidDecodedIdentity = decodedIdentity;
+	invalidDecodedIdentity.identityAdapter.referenceImages.front().channels = 2;
+	if (ofxGgmlDiffusionUtils::validate(invalidDecodedIdentity).isOk()) {
+		std::cerr << "PhotoMaker request with invalid decoded reference image passed validation\n";
+		return 1;
+	}
 	ofxGgmlDiffusionContextSettings identityContext;
 	identityContext.modelPath = "models/sdxl.safetensors";
 	identityContext.photoMakerPath = identityRequest.identityAdapter.modelPath;

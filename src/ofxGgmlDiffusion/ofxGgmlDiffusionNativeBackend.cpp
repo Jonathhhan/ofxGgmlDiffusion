@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <sstream>
+#include <vector>
 
 #if defined(OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION) && __has_include(<stable-diffusion.h>)
 	#include <stable-diffusion.h>
@@ -98,6 +99,31 @@ namespace {
 			image.pixels.assign(source.data, source.data + byteSize);
 		}
 		return image;
+	}
+
+	bool appendNativeImage(
+		const ofxGgmlDiffusionImage& source,
+		std::vector<std::vector<std::uint8_t>>& pixelStorage,
+		std::vector<sd_image_t>& nativeImages) {
+		if (!source.isAllocated() || (source.channels != 3 && source.channels != 4)) {
+			return false;
+		}
+		const std::size_t byteSize =
+			static_cast<std::size_t>(source.width) *
+			static_cast<std::size_t>(source.height) *
+			static_cast<std::size_t>(source.channels);
+		if (source.pixels.size() != byteSize) {
+			return false;
+		}
+		pixelStorage.push_back(source.pixels);
+		auto& pixels = pixelStorage.back();
+		sd_image_t image{};
+		image.width = static_cast<std::uint32_t>(source.width);
+		image.height = static_cast<std::uint32_t>(source.height);
+		image.channel = static_cast<std::uint32_t>(source.channels);
+		image.data = pixels.data();
+		nativeImages.push_back(image);
+		return true;
 	}
 #endif
 }
@@ -251,9 +277,6 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 	if (request.mode != ofxGgmlDiffusionMode::TextToImage) {
 		return makeError("the first native bridge supports text-to-image requests only");
 	}
-	if (request.identityAdapter.isConfigured()) {
-		return makeError("identity adapters are planned for this addon but are not wired to the native stable-diffusion.cpp bridge yet");
-	}
 
 #if OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION
 	const auto start = std::chrono::steady_clock::now();
@@ -277,6 +300,34 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 	params.loras = nativeLoras.empty() ? nullptr : nativeLoras.data();
 	params.lora_count = static_cast<std::uint32_t>(nativeLoras.size());
 	params.vae_tiling_params = makeTilingParams(impl->settings.vaeTiling);
+
+	std::vector<std::vector<std::uint8_t>> nativeIdentityPixels;
+	std::vector<sd_image_t> nativeIdentityImages;
+	if (request.identityAdapter.isConfigured()) {
+		const auto capabilities = ofxGgmlDiffusionGetNativeCapabilities();
+		if (!capabilities.supportsPhotoMaker()) {
+			return makeError("stable-diffusion.cpp PhotoMaker API is not available: " + capabilities.describe());
+		}
+		if (impl->settings.photoMakerPath.empty()) {
+			return makeError("PhotoMaker requires context settings.photoMakerPath before setup");
+		}
+		if (request.identityAdapter.modelPath != impl->settings.photoMakerPath) {
+			return makeError("PhotoMaker request modelPath must match the loaded context photoMakerPath");
+		}
+		if (request.identityAdapter.referenceImages.empty()) {
+			return makeError("PhotoMaker native generation requires decoded referenceImages; load referenceImagePaths with ofxGgmlDiffusionImageUtils::loadImage first");
+		}
+		nativeIdentityPixels.reserve(request.identityAdapter.referenceImages.size());
+		nativeIdentityImages.reserve(request.identityAdapter.referenceImages.size());
+		for (const auto& image : request.identityAdapter.referenceImages) {
+			if (!appendNativeImage(image, nativeIdentityPixels, nativeIdentityImages)) {
+				return makeError("PhotoMaker referenceImages must be allocated RGB or RGBA images");
+			}
+		}
+		params.pm_params.id_images = nativeIdentityImages.data();
+		params.pm_params.id_images_count = static_cast<int>(nativeIdentityImages.size());
+		params.pm_params.style_strength = request.identityAdapter.strength;
+	}
 
 	if (request.steps > 0) {
 		params.sample_params.sample_steps = request.steps;

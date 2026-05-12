@@ -62,8 +62,8 @@
 
 ## Next Milestones
 
-- Wire PhotoMaker reference image loading into the native stable-diffusion.cpp
-  bridge and pass request identity adapter data into `pm_params`.
+- Run PhotoMaker end to end with a local SDXL model, PhotoMaker model, and
+  reference images; keep the smoke path model-free.
 - Choose a small exported generator format and fixture model for the first
   non-builtin GAN inference backend.
 - Implement a toy discriminator/training loop behind the tiny GAN training

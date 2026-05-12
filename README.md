@@ -92,14 +92,28 @@ request.identityAdapter = ofxGgmlDiffusionUtils::makePhotoMakerAdapter(
 ofxGgmlDiffusionContextSettings context;
 context.modelPath = "models/sdxl.safetensors";
 context.photoMakerPath = request.identityAdapter.modelPath;
+
+ofxGgmlDiffusionImage image;
+if (ofxGgmlDiffusionImageUtils::loadImage("references/person-01.jpg", image)) {
+	request.identityAdapter.referenceImages.push_back(image);
+}
 ```
 
 The current native bridge returns a clear error instead of silently ignoring an
 identity adapter. The typed request surface and validation are ready first; the
 native capability smoke now confirms that the installed stable-diffusion.cpp
 header exposes the required PhotoMaker context and image parameter fields. The
-remaining bridge work is loading reference images and passing request
-`identityAdapter` data into `sd_img_gen_params_t::pm_params`.
+native bridge now passes decoded `referenceImages` into
+`sd_img_gen_params_t::pm_params`. Path-only references stay as metadata until an
+example or app loads them with `ofxGgmlDiffusionImageUtils::loadImage()`.
+
+The prompt example can opt into this path with environment variables:
+
+```powershell
+$env:OFXGGML_PHOTOMAKER_MODEL="C:\models\photomaker.safetensors"
+$env:OFXGGML_PHOTOMAKER_REFS="C:\refs\person-01.jpg;C:\refs\person-02.jpg"
+scripts\run-diffusion-example.bat -Build
+```
 
 ## Diffusers Reference
 

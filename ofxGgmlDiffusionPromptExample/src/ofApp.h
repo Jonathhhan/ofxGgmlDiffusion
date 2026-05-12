@@ -13,6 +13,8 @@ public:
 private:
 	void runGeneration();
 	std::string findModelPath() const;
+	std::string findPhotoMakerPath() const;
+	bool loadPhotoMakerReferences();
 	std::string getOutputPath() const;
 	void applyResult(const ofxGgmlDiffusionResult& result);
 

@@ -59,8 +59,9 @@ The first milestone is typed request validation plus native capability
 verification. `ofxGgmlDiffusionNativeCapabilities` reports whether the current
 build has stable-diffusion.cpp enabled and whether the installed header exposes
 the PhotoMaker context path and image parameter fields. Real generation still
-needs the reference image loader before request identity adapter data can be
-passed into `sd_img_gen_params_t::pm_params`.
+requires the app or example to decode reference images before calling the native
+backend; path references are descriptive metadata, while
+`referenceImages` are mapped directly into `sd_img_gen_params_t::pm_params`.
 
 ## Diffusers Reference
 

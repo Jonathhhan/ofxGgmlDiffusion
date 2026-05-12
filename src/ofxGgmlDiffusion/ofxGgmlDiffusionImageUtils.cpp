@@ -15,6 +15,17 @@ namespace ofxGgmlDiffusionImageUtils {
 		}
 	}
 
+	bool loadImage(const std::string& path, ofxGgmlDiffusionImage& image) {
+		image = {};
+		ofPixels pixels;
+		if (!ofLoadImage(pixels, path)) {
+			ofLogWarning("ofxGgmlDiffusion") << "failed to load image: " << path;
+			return false;
+		}
+		image = fromPixels(pixels);
+		return image.isAllocated();
+	}
+
 	bool toPixels(const ofxGgmlDiffusionImage& image, ofPixels& pixels) {
 		pixels.clear();
 		if (!image.isAllocated()) {

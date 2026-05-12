@@ -163,6 +163,20 @@ namespace ofxGgmlDiffusionUtils {
 			if (!adapter.hasReferenceImages()) {
 				result.errors.push_back("identity adapter requires at least one reference image");
 			}
+			for (const auto & image : adapter.referenceImages) {
+				const auto expectedBytes =
+					static_cast<std::size_t>(image.width) *
+					static_cast<std::size_t>(image.height) *
+					static_cast<std::size_t>(image.channels);
+				if (!image.isAllocated() || image.pixels.size() != expectedBytes) {
+					result.errors.push_back("identity adapter referenceImages must be allocated");
+					break;
+				}
+				if (image.channels != 3 && image.channels != 4) {
+					result.errors.push_back("identity adapter referenceImages must be RGB or RGBA");
+					break;
+				}
+			}
 			if (adapter.triggerWord.empty()) {
 				result.errors.push_back("identity adapter requires triggerWord");
 			}

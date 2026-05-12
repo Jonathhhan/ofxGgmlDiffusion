@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <sstream>
+#include <utility>
 #include <vector>
 
 void ofApp::setup() {
@@ -13,6 +15,8 @@ void ofApp::setup() {
 	request.steps = 20;
 	request.outputPath = getOutputPath();
 	settings.modelPath = findModelPath();
+	settings.photoMakerPath = findPhotoMakerPath();
+	loadPhotoMakerReferences();
 
 	status = ofxGgmlDiffusionUtils::describe(request);
 	if (settings.modelPath.empty()) {
@@ -106,6 +110,64 @@ std::string ofApp::findModelPath() const {
 	return "";
 }
 
+std::string ofApp::findPhotoMakerPath() const {
+	const char* envModel = std::getenv("OFXGGML_PHOTOMAKER_MODEL");
+	if (envModel && ofFile::doesFileExist(envModel, false)) {
+		return envModel;
+	}
+	const auto candidate = ofToDataPath("models/photomaker.safetensors", true);
+	if (ofFile::doesFileExist(candidate, false)) {
+		return candidate;
+	}
+	return "";
+}
+
+bool ofApp::loadPhotoMakerReferences() {
+	if (settings.photoMakerPath.empty()) {
+		return false;
+	}
+	const char* envRefs = std::getenv("OFXGGML_PHOTOMAKER_REFS");
+	if (!envRefs || std::string(envRefs).empty()) {
+		return false;
+	}
+
+	std::vector<std::string> paths;
+	std::stringstream stream(envRefs);
+	std::string path;
+	while (std::getline(stream, path, ';')) {
+		path = ofTrim(path);
+		if (!path.empty()) {
+			paths.push_back(path);
+		}
+	}
+	if (paths.empty()) {
+		return false;
+	}
+
+	auto adapter = ofxGgmlDiffusionUtils::makePhotoMakerAdapter(
+		settings.photoMakerPath,
+		paths,
+		"img");
+	for (const auto& referencePath : paths) {
+		ofxGgmlDiffusionImage image;
+		if (!ofxGgmlDiffusionImageUtils::loadImage(referencePath, image)) {
+			ofLogWarning("ofxGgmlDiffusionPromptExample") << "Skipping PhotoMaker reference: " << referencePath;
+			continue;
+		}
+		adapter.referenceImages.push_back(std::move(image));
+	}
+	if (adapter.referenceImages.empty()) {
+		ofLogWarning("ofxGgmlDiffusionPromptExample") << "PhotoMaker was configured but no reference images loaded";
+		return false;
+	}
+	request.identityAdapter = std::move(adapter);
+	request.modelFamily = ofxGgmlDiffusionModelFamily::SDXL;
+	ofLogNotice("ofxGgmlDiffusionPromptExample") << "Loaded "
+		<< request.identityAdapter.referenceImages.size()
+		<< " PhotoMaker reference image(s)";
+	return true;
+}
+
 std::string ofApp::getOutputPath() const {
 	const auto outputDir = ofToDataPath("outputs", true);
 	ofDirectory::createDirectory(outputDir, false, true);
@@ -118,12 +180,13 @@ void ofApp::draw() {
 	ofDrawBitmapString("ofxGgmlDiffusion text-to-image", 32, 48);
 	ofDrawBitmapString("prompt: " + request.prompt, 32, 78);
 	ofDrawBitmapString("model: " + (settings.modelPath.empty() ? "(unset)" : settings.modelPath), 32, 108);
-	ofDrawBitmapString("status: " + status, 32, 138);
-	ofDrawBitmapString(detail, 32, 168);
-	ofDrawBitmapString("R run   C cancel", 32, 198);
+	ofDrawBitmapString("photomaker: " + (settings.photoMakerPath.empty() ? "(unset)" : settings.photoMakerPath), 32, 138);
+	ofDrawBitmapString("status: " + status, 32, 168);
+	ofDrawBitmapString(detail, 32, 198);
+	ofDrawBitmapString("R run   C cancel", 32, 228);
 	if (texture.isAllocated()) {
 		const float maxSize = 512.0f;
 		const float scale = std::min(maxSize / texture.getWidth(), maxSize / texture.getHeight());
-		texture.draw(32, 232, texture.getWidth() * scale, texture.getHeight() * scale);
+		texture.draw(32, 262, texture.getWidth() * scale, texture.getHeight() * scale);
 	}
 }

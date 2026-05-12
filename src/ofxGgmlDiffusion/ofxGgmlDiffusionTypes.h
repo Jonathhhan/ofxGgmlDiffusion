@@ -67,24 +67,6 @@ struct ofxGgmlDiffusionControlImage {
 	}
 };
 
-struct ofxGgmlDiffusionIdentityAdapter {
-	ofxGgmlDiffusionIdentityAdapterType type = ofxGgmlDiffusionIdentityAdapterType::Unknown;
-	std::string modelPath;
-	std::string triggerWord = "img";
-	std::vector<std::string> referenceImagePaths;
-	float strength = 1.0f;
-
-	bool isConfigured() const {
-		return type != ofxGgmlDiffusionIdentityAdapterType::Unknown ||
-			!modelPath.empty() ||
-			!referenceImagePaths.empty();
-	}
-
-	bool hasReferenceImages() const {
-		return !referenceImagePaths.empty();
-	}
-};
-
 struct ofxGgmlDiffusionImage {
 	int width = 0;
 	int height = 0;
@@ -97,6 +79,25 @@ struct ofxGgmlDiffusionImage {
 
 	std::size_t getByteSize() const {
 		return pixels.size();
+	}
+};
+
+struct ofxGgmlDiffusionIdentityAdapter {
+	ofxGgmlDiffusionIdentityAdapterType type = ofxGgmlDiffusionIdentityAdapterType::Unknown;
+	std::string modelPath;
+	std::string triggerWord = "img";
+	std::vector<std::string> referenceImagePaths;
+	std::vector<ofxGgmlDiffusionImage> referenceImages;
+	float strength = 1.0f;
+
+	bool isConfigured() const {
+		return type != ofxGgmlDiffusionIdentityAdapterType::Unknown ||
+			!modelPath.empty() ||
+			!referenceImagePaths.empty();
+	}
+
+	bool hasReferenceImages() const {
+		return !referenceImagePaths.empty() || !referenceImages.empty();
 	}
 };
 
