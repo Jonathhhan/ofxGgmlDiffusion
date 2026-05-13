@@ -1,32 +1,32 @@
-# AGENTS.md
+# Codex Repository Instructions
 
-This repository is `ofxGgmlDiffusion`, the diffusion/image-generation companion addon for the ofxGgml family.
+This repository is part of the ofxGgml openFrameworks addon ecosystem.
 
-Codex should treat `ofxGgmlCore` as the shared backend-neutral foundation. This repo owns diffusion, image generation, GAN boundaries, PhotoMaker/native-runtime bridges, generated-project repair, and diffusion-specific examples.
+## Addon Scope
 
-## Addon contract
+- Addon: ofxGgmlDiffusion
+- Lane: image generation
+- Role: diffusion, GAN, PhotoMaker-style identity adapters, and native image backend bridges
 
-Do:
+## Working Rules
 
-- keep diffusion/image-generation workflows in this addon
-- depend on shared primitives from `ofxGgmlCore` where practical
-- preserve openFrameworks addon layout and `addon_config.mk`
-- keep examples projectGenerator-friendly
-- document model and generated asset paths clearly
-- update scripts/docs/examples together with behavior changes
+- Read the existing code and docs before changing behavior.
+- Keep edits scoped to this addon's lane and preserve the companion-addon split.
+- Start with an ecosystem plan when a task asks for cross-repo improvement or planning.
+- Keep ofxGgmlCore as the shared base; do not add reverse dependencies from Core to companion addons.
+- Do not commit generated project files, binaries, model weights, downloaded runtimes, sample media dumps, memory indexes, or caches.
+- Prefer focused tests and local validation over broad refactors.
+- Preserve openFrameworks-style public names and document intentional breaking changes.
 
-Do not:
+## Validation
 
-- move backend-neutral Core primitives into this repo
-- commit models, generated images, generated builds, binaries, or downloaded caches
-- hardcode local absolute paths
-- silently break Windows/macOS/Linux script parity
+Validation before handoff: scripts\validate-local.ps1.
 
-## Codex workflow
+For ecosystem planning work, run scripts\plan-ecosystem.ps1 from ofxGgmlCore
+before proposing addon-code changes.
 
-1. Inspect README, docs, scripts, `addon_config.mk`, examples, and relevant `src/` files first.
-2. Propose the smallest implementation plan before editing.
-3. Keep diffs focused.
-4. Preserve Core vs companion-addon boundaries.
-5. Update examples/docs/scripts with code changes.
-6. Summarize validation honestly.
+## Ecosystem Notes
+
+Model-specific UX belongs in companion addons. Shared code should move down into
+ofxGgmlCore only after it is stable, domain-neutral, dependency-light, and
+covered by focused tests.
