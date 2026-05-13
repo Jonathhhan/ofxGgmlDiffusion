@@ -96,6 +96,7 @@ Assert-Path (Join-Path $scriptRoot "build-stable-diffusion.sh") "stable-diffusio
 Assert-Path (Join-Path $scriptRoot "doctor-diffusion.ps1") "diffusion doctor script"
 Assert-Path (Join-Path $scriptRoot "doctor-diffusion.bat") "diffusion doctor Windows wrapper"
 Assert-Path (Join-Path $scriptRoot "doctor-diffusion.sh") "diffusion doctor shell wrapper"
+Assert-Path (Join-Path $scriptRoot "test-doctor-diffusion.ps1") "diffusion doctor smoke test"
 Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.ps1") "stable-diffusion setup script"
 Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.bat") "stable-diffusion Windows setup wrapper"
 Assert-Path (Join-Path $scriptRoot "setup-stable-diffusion.sh") "stable-diffusion shell setup wrapper"
@@ -167,12 +168,7 @@ if (!$nativeSmokeDryRun.Contains("stable-diffusion.cpp native smoke plan") -or
 }
 
 Write-Step "Checking diffusion doctor smoke"
-$doctorOutput = & (Join-Path $scriptRoot "doctor-diffusion.ps1") 2>&1 6>&1 | Out-String
-if (!$doctorOutput.Contains("ofxGgmlDiffusion doctor") -or
-	!$doctorOutput.Contains("PhotoMaker") -or
-	!$doctorOutput.Contains("Suggested next checks")) {
-	throw "diffusion doctor output was unexpected:`n$doctorOutput"
-}
+& (Join-Path $scriptRoot "test-doctor-diffusion.ps1")
 
 Write-Step "Checking launch dry-runs"
 & (Join-Path $scriptRoot "test-launch-dry-run.ps1")

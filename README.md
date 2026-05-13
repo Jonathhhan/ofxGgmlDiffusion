@@ -218,12 +218,14 @@ scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\dat
 ## Validate
 
 ```powershell
+scripts\doctor-diffusion.bat
 scripts\validate-local.bat
 ```
 
 On macOS/Linux:
 
 ```sh
+./scripts/doctor-diffusion.sh
 ./scripts/validate-local.sh
 ```
 
