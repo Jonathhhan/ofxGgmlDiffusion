@@ -16,6 +16,10 @@ namespace ofxGgmlDiffusionUtils {
 	bool isValidImageDimension(int value);
 	ofxGgmlDiffusionValidationResult validate(const ofxGgmlDiffusionRequest & request);
 	ofxGgmlDiffusionRequest makeTextToImageRequest(const std::string & prompt);
+	ofxGgmlDiffusionRequest makeImageToVideoRequest(
+		const std::string & prompt,
+		const std::string & initImagePath,
+		int videoFrameCount = 16);
 	ofxGgmlDiffusionRequest makeGanImageRequest(
 		const std::string & prompt,
 		const std::string & generatorPath);
