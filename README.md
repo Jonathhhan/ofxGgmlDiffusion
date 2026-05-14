@@ -24,6 +24,9 @@ and request validation. The large native wrapper, vendored
 stable-diffusion.cpp tree, generated media, and experimental app workflows stay
 out until they are deliberately reintroduced.
 
+For diffusion-lane planning and future backend boundaries, see
+[docs/DIFFUSION_WORKFLOWS.md](docs/DIFFUSION_WORKFLOWS.md).
+
 Native `stable-diffusion.cpp` runtime files are generated locally:
 
 ```powershell
