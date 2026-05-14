@@ -70,8 +70,10 @@ the native runtime is generated and the app build defines
 pipeline helpers can choose between diffusion, GAN, and external image backends
 through one boundary.
 
-The first bridge intentionally supports text-to-image only and returns generated
-pixels in `ofxGgmlDiffusionResult::images`. Use
+The first bridge supports both `text-to-image` and `image-to-video` and returns
+generated pixels in `ofxGgmlDiffusionResult::images`. For video, each generated
+frame is appended to the same image vector and `result.videoFrameCount` is set.
+Use
 `ofxGgmlDiffusionImageUtils::toPixels()` or `saveFirstImage()` to display or
 save those pixels from an openFrameworks app. Image-to-image, inpainting, and
 deeper native progress integration should be layered on after this boundary

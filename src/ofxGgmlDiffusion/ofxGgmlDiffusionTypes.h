@@ -165,6 +165,7 @@ struct ofxGgmlDiffusionRequest {
 	ofxGgmlDiffusionIdentityAdapter identityAdapter;
 	ofxGgmlDiffusionGanSettings gan;
 	std::vector<std::string> tags;
+	int videoFrameCount = 16;
 };
 
 struct ofxGgmlDiffusionResult {
@@ -174,6 +175,7 @@ struct ofxGgmlDiffusionResult {
 	std::string outputPath;
 	std::vector<ofxGgmlDiffusionImage> images;
 	std::vector<std::string> imagePaths;
+	int videoFrameCount = 0;
 	std::vector<std::string> references;
 	float elapsedMs = 0.0f;
 	std::int64_t seed = -1;

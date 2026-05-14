@@ -63,6 +63,51 @@ int main() {
 		std::cerr << "prompt was not cleaned\n";
 		return 1;
 	}
+	auto videoRequest = ofxGgmlDiffusionUtils::makeImageToVideoRequest(
+		"motion shot from skyline",
+		"fixtures/video-init.png",
+		8);
+	videoRequest.width = 512;
+	videoRequest.height = 512;
+	if (videoRequest.mode != ofxGgmlDiffusionMode::ImageToVideo ||
+		videoRequest.videoFrameCount != 8) {
+		std::cerr << "image-to-video helper did not configure mode or frame count\n";
+		return 1;
+	}
+	if (!ofxGgmlDiffusionUtils::validate(videoRequest).isOk()) {
+		std::cerr << "valid image-to-video request failed validation\n";
+		return 1;
+	}
+	auto invalidVideoRequest = videoRequest;
+	invalidVideoRequest.batchCount = 2;
+	if (ofxGgmlDiffusionUtils::validate(invalidVideoRequest).isOk()) {
+		std::cerr << "image-to-video with batchCount > 1 passed validation\n";
+		return 1;
+	}
+	invalidVideoRequest = videoRequest;
+	invalidVideoRequest.videoFrameCount = 0;
+	if (ofxGgmlDiffusionUtils::validate(invalidVideoRequest).isOk()) {
+		std::cerr << "image-to-video with videoFrameCount 0 passed validation\n";
+		return 1;
+	}
+	invalidVideoRequest = videoRequest;
+	invalidVideoRequest.identityAdapter = ofxGgmlDiffusionUtils::makePhotoMakerAdapter(
+		"models/photomaker.safetensors",
+		{"references/person-01.jpg"},
+		"img");
+	invalidVideoRequest.identityAdapter.referenceImages = {
+		[] {
+			ofxGgmlDiffusionImage image;
+			image.width = 2;
+			image.height = 2;
+			image.channels = 3;
+			image.pixels.resize(12, 255);
+			return image;
+		}() };
+	if (ofxGgmlDiffusionUtils::validate(invalidVideoRequest).isOk()) {
+		std::cerr << "image-to-video with identity adapter passed validation\n";
+		return 1;
+	}
 
 	auto identityRequest = ofxGgmlDiffusionUtils::makeTextToImageRequest("portrait of img in soft light");
 	identityRequest.modelFamily = ofxGgmlDiffusionModelFamily::SDXL;

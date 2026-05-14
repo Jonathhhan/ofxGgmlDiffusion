@@ -10,6 +10,7 @@
 
 #if defined(OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION) && __has_include(<stable-diffusion.h>)
 	#include <stable-diffusion.h>
+	#include "ofxGgmlDiffusionImageUtils.h"
 	#define OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION 1
 #else
 	#define OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION 0
@@ -274,19 +275,97 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 	if (!impl || !impl->isLoaded()) {
 		return makeError("stable-diffusion.cpp context is not loaded");
 	}
-	if (request.mode != ofxGgmlDiffusionMode::TextToImage) {
-		return makeError("the first native bridge supports text-to-image requests only");
+	if (request.mode != ofxGgmlDiffusionMode::TextToImage &&
+		request.mode != ofxGgmlDiffusionMode::ImageToVideo) {
+		return makeError("the first native bridge supports text-to-image and image-to-video requests only");
 	}
 
 #if OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION
 	const auto start = std::chrono::steady_clock::now();
 	const std::string prompt = ofxGgmlDiffusionUtils::cleanPrompt(request.prompt);
+	const auto scheduler = toNativeScheduler(request.scheduler);
+	const auto sampleSteps = request.steps;
+	const bool hasSteps = sampleSteps > 0;
+	const bool hasCfgScale = !ofxGgmlDiffusionUtils::isAutoValue(request.cfgScale);
+	const bool hasStrength = !ofxGgmlDiffusionUtils::isAutoValue(request.strength);
+	const bool hasFlowShift = !ofxGgmlDiffusionUtils::isAutoValue(request.flowShift);
+
 	std::vector<sd_lora_t> nativeLoras;
 	nativeLoras.reserve(request.loras.size());
 	for (const auto& lora : request.loras) {
 		if (lora.isConfigured()) {
 			nativeLoras.push_back({lora.highNoise, lora.strength, lora.path.c_str()});
 		}
+	}
+
+	if (request.mode == ofxGgmlDiffusionMode::ImageToVideo) {
+		ofxGgmlDiffusionImage initImage;
+		if (!ofxGgmlDiffusionImageUtils::loadImage(request.initImagePath, initImage)) {
+			return makeError("failed to load initImagePath for image-to-video");
+		}
+
+		std::vector<std::vector<std::uint8_t>> nativeInitPixels;
+		std::vector<sd_image_t> nativeInitImages;
+		nativeInitPixels.reserve(1);
+		nativeInitImages.reserve(1);
+		if (!appendNativeImage(initImage, nativeInitPixels, nativeInitImages)) {
+			return makeError("image-to-video initImagePath must be allocated RGB or RGBA image data");
+		}
+
+		sd_vid_gen_params_t params{};
+		sd_vid_gen_params_init(&params);
+		params.prompt = emptyToNull(prompt);
+		params.negative_prompt = emptyToNull(request.negativePrompt);
+		params.init_image = nativeInitImages.front();
+		params.width = request.width;
+		params.height = request.height;
+		params.seed = request.seed;
+		params.video_frames = request.videoFrameCount;
+		params.vae_tiling_params = makeTilingParams(impl->settings.vaeTiling);
+		params.loras = nativeLoras.empty() ? nullptr : nativeLoras.data();
+		params.lora_count = static_cast<std::uint32_t>(nativeLoras.size());
+		if (hasSteps) {
+			params.sample_params.sample_steps = sampleSteps;
+		}
+		if (hasCfgScale) {
+			params.sample_params.guidance.txt_cfg = request.cfgScale;
+		}
+		if (hasStrength) {
+			params.strength = request.strength;
+		}
+		if (hasFlowShift) {
+			params.sample_params.flow_shift = request.flowShift;
+		}
+		if (scheduler != SCHEDULER_COUNT) {
+			params.sample_params.scheduler = scheduler;
+		}
+
+		int numFrames = 0;
+		sd_image_t* generated = generate_video(impl->context, &params, &numFrames);
+		if (!generated) {
+			return makeError("stable-diffusion.cpp returned no frames");
+		}
+
+		ofxGgmlDiffusionResult result;
+		result.success = true;
+		result.seed = params.seed;
+		result.videoFrameCount = request.videoFrameCount;
+		result.images.reserve(static_cast<std::size_t>(numFrames));
+		for (int i = 0; i < numFrames; ++i) {
+			auto image = copyImage(generated[i]);
+			if (image.isAllocated()) {
+				result.images.push_back(std::move(image));
+			}
+		}
+		releaseImageArray(generated, numFrames);
+		result.videoFrameCount = static_cast<int>(result.images.size());
+		result.elapsedMs = std::chrono::duration<float, std::milli>(
+			std::chrono::steady_clock::now() - start).count();
+		result.text = "generated " + std::to_string(result.images.size()) + " frame(s)";
+		if (result.images.empty()) {
+			return makeError("stable-diffusion.cpp generated empty video data");
+		}
+		return result;
 	}
 
 	sd_img_gen_params_t params{};
@@ -328,33 +407,30 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 		params.pm_params.id_images_count = static_cast<int>(nativeIdentityImages.size());
 		params.pm_params.style_strength = request.identityAdapter.strength;
 	}
-
-	if (request.steps > 0) {
-		params.sample_params.sample_steps = request.steps;
+	if (hasSteps) {
+		params.sample_params.sample_steps = sampleSteps;
 	}
-	if (!ofxGgmlDiffusionUtils::isAutoValue(request.cfgScale)) {
+	if (hasCfgScale) {
 		params.sample_params.guidance.txt_cfg = request.cfgScale;
 	}
-	if (!ofxGgmlDiffusionUtils::isAutoValue(request.strength)) {
+	if (hasStrength) {
 		params.strength = request.strength;
 	}
-	if (!ofxGgmlDiffusionUtils::isAutoValue(request.flowShift)) {
+	if (hasFlowShift) {
 		params.sample_params.flow_shift = request.flowShift;
 	}
-	const auto scheduler = toNativeScheduler(request.scheduler);
 	if (scheduler != SCHEDULER_COUNT) {
 		params.sample_params.scheduler = scheduler;
-	}
-
-	sd_image_t* generated = generate_image(impl->context, &params);
-	if (!generated) {
-		return makeError("stable-diffusion.cpp returned no images");
 	}
 
 	ofxGgmlDiffusionResult result;
 	result.success = true;
 	result.seed = params.seed;
 	result.images.reserve(static_cast<std::size_t>(request.batchCount));
+	sd_image_t* generated = generate_image(impl->context, &params);
+	if (!generated) {
+		return makeError("stable-diffusion.cpp returned no images");
+	}
 	for (int i = 0; i < request.batchCount; ++i) {
 		auto image = copyImage(generated[i]);
 		if (image.isAllocated()) {
@@ -362,14 +438,13 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 		}
 	}
 	releaseImageArray(generated, request.batchCount);
-
-	const auto elapsed = std::chrono::steady_clock::now() - start;
-	result.elapsedMs = std::chrono::duration<float, std::milli>(elapsed).count();
-	result.text = "generated " + std::to_string(result.images.size()) + " image(s)";
-	if (result.images.empty()) {
-		return makeError("stable-diffusion.cpp generated empty image data");
+	if (!result.images.empty()) {
+		const auto elapsed = std::chrono::steady_clock::now() - start;
+		result.elapsedMs = std::chrono::duration<float, std::milli>(elapsed).count();
+		result.text = "generated " + std::to_string(result.images.size()) + " image(s)";
+		return result;
 	}
-	return result;
+	return makeError("stable-diffusion.cpp generated empty image data");
 #else
 	(void)request;
 	return makeError("stable-diffusion.cpp native backend is not enabled. Run scripts/build-stable-diffusion.*, then compile with OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION.");

@@ -127,6 +127,17 @@ namespace ofxGgmlDiffusionUtils {
 			(request.initImagePath.empty() || request.maskImagePath.empty())) {
 			result.errors.push_back("inpainting requires initImagePath and maskImagePath");
 		}
+		if (request.mode == ofxGgmlDiffusionMode::ImageToVideo && request.initImagePath.empty()) {
+			result.errors.push_back("image-to-video requires initImagePath");
+		}
+		if (request.mode == ofxGgmlDiffusionMode::ImageToVideo) {
+			if (request.batchCount != 1) {
+				result.errors.push_back("image-to-video currently supports batchCount of 1");
+			}
+			if (request.videoFrameCount < 1) {
+				result.errors.push_back("image-to-video requires videoFrameCount >= 1");
+			}
+		}
 		if (request.mode == ofxGgmlDiffusionMode::Upscale && request.initImagePath.empty()) {
 			result.errors.push_back("upscale requires initImagePath");
 		}
@@ -154,6 +165,9 @@ namespace ofxGgmlDiffusionUtils {
 		}
 		if (request.identityAdapter.isConfigured()) {
 			const auto & adapter = request.identityAdapter;
+			if (request.mode == ofxGgmlDiffusionMode::ImageToVideo) {
+				result.errors.push_back("identity adapters are not supported for image-to-video");
+			}
 			if (adapter.type == ofxGgmlDiffusionIdentityAdapterType::Unknown) {
 				result.errors.push_back("identity adapter type is unknown");
 			}
@@ -202,6 +216,17 @@ namespace ofxGgmlDiffusionUtils {
 		ofxGgmlDiffusionRequest request;
 		request.mode = ofxGgmlDiffusionMode::TextToImage;
 		request.prompt = cleanPrompt(prompt);
+		return request;
+	}
+
+	ofxGgmlDiffusionRequest makeImageToVideoRequest(
+		const std::string & prompt,
+		const std::string & initImagePath,
+		int videoFrameCount) {
+		auto request = makeTextToImageRequest(prompt);
+		request.mode = ofxGgmlDiffusionMode::ImageToVideo;
+		request.initImagePath = initImagePath;
+		request.videoFrameCount = videoFrameCount > 0 ? videoFrameCount : 16;
 		return request;
 	}
 
