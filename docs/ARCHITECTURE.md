@@ -130,3 +130,8 @@ checkpoints, so the addon can test update direction before introducing a real
 trainable parameter format. The preset mutation helper applies that preview to
 the tiny `.ofxggmlgan` descriptor only when explicitly requested, preserving the
 dry-run boundary while proving the future checkpoint write path.
+
+See `docs/DIFFUSION_WORKFLOWS.md` before expanding the lane. It defines the
+planning handoff, generated-artifact boundaries, backend-family split, and
+validation ladder for diffusion, GAN, identity-adapter, and external image
+generation work.
