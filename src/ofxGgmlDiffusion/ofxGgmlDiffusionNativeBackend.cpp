@@ -10,10 +10,16 @@
 
 #if defined(OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION) && __has_include(<stable-diffusion.h>)
 	#include <stable-diffusion.h>
-	#include "ofxGgmlDiffusionImageUtils.h"
 	#define OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION 1
 #else
 	#define OFXGGMLDIFFUSION_HAS_STABLE_DIFFUSION 0
+#endif
+
+#if __has_include("ofPixels.h") && __has_include("ofImage.h")
+	#include "ofxGgmlDiffusionImageUtils.h"
+	#define OFXGGMLDIFFUSION_HAS_OF_IMAGE_UTILS 1
+#else
+	#define OFXGGMLDIFFUSION_HAS_OF_IMAGE_UTILS 0
 #endif
 
 namespace {
@@ -299,6 +305,7 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 	}
 
 	if (request.mode == ofxGgmlDiffusionMode::ImageToVideo) {
+#if OFXGGMLDIFFUSION_HAS_OF_IMAGE_UTILS
 		ofxGgmlDiffusionImage initImage;
 		if (!ofxGgmlDiffusionImageUtils::loadImage(request.initImagePath, initImage)) {
 			return makeError("failed to load initImagePath for image-to-video");
@@ -366,6 +373,9 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 			return makeError("stable-diffusion.cpp generated empty video data");
 		}
 		return result;
+#else
+		return makeError("image-to-video requires openFrameworks image utilities in the include path");
+#endif
 	}
 
 	sd_img_gen_params_t params{};

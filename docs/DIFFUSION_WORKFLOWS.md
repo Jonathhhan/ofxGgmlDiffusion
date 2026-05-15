@@ -78,9 +78,17 @@ Use the smallest command that proves the changed layer:
 | Docs or planning only | `scripts\validate-local.bat` |
 | Native setup script changes | `scripts\test-stable-diffusion-setup-dry-run.bat` |
 | Native bridge boundary | `scripts\test-stable-diffusion-native.bat -DryRun` |
+| Ecosystem runtime smoke evidence | `scripts\run-diffusion-runtime-smoke.bat -Json -SummaryOnly` |
 | Example launch path | `scripts\test-launch-dry-run.bat` |
 | Local setup diagnosis | `scripts\doctor-diffusion.bat` |
 | Request, image, or GAN helper changes | `scripts\test-addon.bat` |
+
+`scripts\run-diffusion-runtime-smoke.*` is intentionally model-free for now. It
+proves the installed `stable-diffusion.cpp` bridge can compile, link, expose the
+expected capability surface, and fail cleanly without a model or loaded context.
+Real text-to-image and image-to-video generation smokes should build on this
+entrypoint once model paths, output locations, runtime backends, and media
+cleanup are explicit.
 
 ## Safe first tasks
 
