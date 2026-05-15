@@ -36,6 +36,7 @@ scripts\build-stable-diffusion.bat -CpuOnly
 scripts\build-stable-diffusion.bat -Cuda
 scripts\build-stable-diffusion.bat -BundledGgml
 scripts\test-stable-diffusion-native.bat
+scripts\run-diffusion-runtime-smoke.bat -Json -SummaryOnly
 scripts\doctor-diffusion.bat
 ```
 
@@ -54,6 +55,11 @@ confirms the PhotoMaker C API fields are present, then checks the explicit
 missing-model and missing-context error paths. Use it after
 `scripts\build-stable-diffusion.bat` to verify the local runtime boundary before
 downloading large diffusion models.
+
+`scripts\run-diffusion-runtime-smoke.bat` is the lane-owned runtime-smoke
+entrypoint for ecosystem planning and CI rollouts. It wraps the same
+model-free native boundary smoke and can emit a compact JSON summary for agents
+and workflow reports without committing generated native files or image output.
 
 `scripts\doctor-diffusion.bat` checks the local runtime, generated example
 project, diffusion model env var, and optional PhotoMaker env vars without
@@ -224,6 +230,7 @@ scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\dat
 
 ```powershell
 scripts\doctor-diffusion.bat
+scripts\run-diffusion-runtime-smoke.bat -DryRun
 scripts\validate-local.bat
 ```
 
@@ -231,6 +238,7 @@ On macOS/Linux:
 
 ```sh
 ./scripts/doctor-diffusion.sh
+./scripts/run-diffusion-runtime-smoke.sh -DryRun
 ./scripts/validate-local.sh
 ```
 

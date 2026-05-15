@@ -111,6 +111,10 @@ Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-setup-dry-run.sh") "st
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.ps1") "stable-diffusion native smoke script"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.bat") "stable-diffusion native smoke Windows wrapper"
 Assert-Path (Join-Path $scriptRoot "test-stable-diffusion-native.sh") "stable-diffusion native smoke shell wrapper"
+Assert-Path (Join-Path $scriptRoot "run-diffusion-runtime-smoke.ps1") "diffusion runtime smoke script"
+Assert-Path (Join-Path $scriptRoot "run-diffusion-runtime-smoke.bat") "diffusion runtime smoke Windows wrapper"
+Assert-Path (Join-Path $scriptRoot "run-diffusion-runtime-smoke.sh") "diffusion runtime smoke shell wrapper"
+Assert-Path (Join-Path $scriptRoot "test-diffusion-runtime-smoke.ps1") "diffusion runtime smoke contract test"
 Assert-Path (Join-Path $scriptRoot "build-diffusion-example.ps1") "diffusion example build script"
 Assert-FileContains (Join-Path $scriptRoot "build-diffusion-example.ps1") "Repair-DiffusionGeneratedProject" "diffusion generated project repair"
 Assert-FileContains (Join-Path $scriptRoot "build-diffusion-example.ps1") "Initialize-DiffusionGeneratedProject" "diffusion generated project initializer"
@@ -171,6 +175,9 @@ if (!$nativeSmokeDryRun.Contains("stable-diffusion.cpp native smoke plan") -or
 	!$nativeSmokeDryRun.Contains("Dry run complete; no files were changed")) {
 	throw "stable-diffusion.cpp native smoke dry-run output was unexpected:`n$nativeSmokeDryRun"
 }
+
+Write-Step "Checking diffusion runtime smoke contract"
+& (Join-Path $scriptRoot "test-diffusion-runtime-smoke.ps1")
 
 Write-Step "Checking diffusion doctor smoke"
 & (Join-Path $scriptRoot "test-doctor-diffusion.ps1")
