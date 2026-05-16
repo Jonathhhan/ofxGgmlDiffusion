@@ -80,6 +80,31 @@ function Test-CoreGgmlLibraryAvailable {
 	return (Test-Path -LiteralPath (Join-Path $libDir $libraryName) -PathType Leaf)
 }
 
+function Test-CoreGgmlBaseAvailable {
+	param([string]$CorePath)
+	if ([string]::IsNullOrWhiteSpace($CorePath)) {
+		return $false
+	}
+	$includeDir = Join-Path $CorePath "libs\ggml\include"
+	if (!(Test-Path -LiteralPath (Join-Path $includeDir "ggml.h") -PathType Leaf)) {
+		return $false
+	}
+	if (Test-WindowsHost) {
+		foreach ($libraryName in @("ggml.lib", "ggml-base.lib", "ggml-cpu.lib")) {
+			if (!(Test-CoreGgmlLibraryAvailable -CorePath $CorePath -WindowsLibraryName $libraryName -UnixLibraryName "")) {
+				return $false
+			}
+		}
+	} else {
+		foreach ($libraryName in @("libggml.a", "libggml-base.a", "libggml-cpu.a")) {
+			if (!(Test-CoreGgmlLibraryAvailable -CorePath $CorePath -WindowsLibraryName "" -UnixLibraryName $libraryName)) {
+				return $false
+			}
+		}
+	}
+	return $true
+}
+
 function Get-DefaultGenerator {
 	if (![string]::IsNullOrWhiteSpace($Generator)) {
 		return $Generator
@@ -233,7 +258,16 @@ $enableVulkan = $false
 $enableMetal = $false
 $enableOpenCL = $false
 $mode = "Auto"
-$ggmlMode = if ($BundledGgml) { "Bundled" } else { "ofxGgmlCore" }
+$coreGgmlAvailable = Test-CoreGgmlBaseAvailable -CorePath $OfxGgmlCorePath
+$useBundledGgml = [bool]$BundledGgml -and !$coreGgmlAvailable
+$ggmlMode = if ($useBundledGgml) { "Bundled" } else { "ofxGgmlCore" }
+$ggmlModeDetail = if ($BundledGgml -and $coreGgmlAvailable) {
+	"BundledGgml requested but ignored because ofxGgmlCore ggml is available"
+} elseif ($useBundledGgml) {
+	"BundledGgml requested and ofxGgmlCore ggml was not found"
+} else {
+	"using ofxGgmlCore ggml"
+}
 $coreGgmlPackageRoot = Join-Path $BuildDir "ofxggmlcore-cmake"
 $coreGgmlPackageDir = Join-Path $coreGgmlPackageRoot "ggml"
 
@@ -245,7 +279,7 @@ if ($CpuOnly) {
 		$enableVulkan = Test-VulkanAvailable
 		$enableMetal = Test-MetalAvailable
 		$enableOpenCL = Test-OpenCLAvailable
-		if (!$BundledGgml) {
+		if (!$useBundledGgml) {
 			$enableCuda = $enableCuda -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-cuda.lib" -UnixLibraryName "libggml-cuda.a")
 			$enableVulkan = $enableVulkan -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-vulkan.lib" -UnixLibraryName "libggml-vulkan.a")
 			$enableMetal = $enableMetal -and (Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-metal.lib" -UnixLibraryName "libggml-metal.a")
@@ -272,7 +306,7 @@ if ($enableMetal -and !(Test-MetalAvailable)) {
 if ($enableOpenCL -and !(Test-OpenCLAvailable)) {
 	$enableOpenCL = $false
 }
-if (!$BundledGgml) {
+if (!$useBundledGgml) {
 	if ($enableCuda -and !(Test-CoreGgmlLibraryAvailable -CorePath $OfxGgmlCorePath -WindowsLibraryName "ggml-cuda.lib" -UnixLibraryName "libggml-cuda.a")) {
 		$enableCuda = $false
 	}
@@ -320,7 +354,7 @@ $cmakeConfigure += @(
 	"-DSD_METAL=$(Convert-ToOnOff $enableMetal)",
 	"-DSD_OPENCL=$(Convert-ToOnOff $enableOpenCL)"
 )
-if (!$BundledGgml) {
+if (!$useBundledGgml) {
 	$cmakeConfigure += @(
 		"-DSD_USE_SYSTEM_GGML=ON",
 		"-DCMAKE_PREFIX_PATH=$coreGgmlPackageRoot",
@@ -339,7 +373,8 @@ if ($DryRun) {
 	Write-Host "  mode: $mode"
 	Write-Host "  enabled backends: CPU=ON CUDA=$(Convert-ToOnOff $enableCuda) Vulkan=$(Convert-ToOnOff $enableVulkan) Metal=$(Convert-ToOnOff $enableMetal) OpenCL=$(Convert-ToOnOff $enableOpenCL)"
 	Write-Host "  ggml: $ggmlMode"
-	if (!$BundledGgml) {
+	Write-Host "  ggml detail: $ggmlModeDetail"
+	if (!$useBundledGgml) {
 		Write-Host "  ofxGgmlCore: $OfxGgmlCorePath"
 		Write-Host "  generated ggml package: $coreGgmlPackageDir"
 	}
@@ -373,7 +408,7 @@ if (!(Test-Path -LiteralPath $SourceDir -PathType Container)) {
 	Write-Step "stable-diffusion.cpp source already exists; skipping clone"
 }
 
-if (!$BundledGgml) {
+if (!$useBundledGgml) {
 	if (!(Test-Path -LiteralPath $OfxGgmlCorePath -PathType Container)) {
 		throw "ofxGgmlCore was not found at: $OfxGgmlCorePath. Use -OfxGgmlCorePath or pass -BundledGgml."
 	}

@@ -57,9 +57,19 @@ Assert-Contains $cpuOutput "mode: CpuOnly" "CPU-only dry-run"
 Assert-Contains $cpuOutput "CUDA=OFF" "CPU-only dry-run"
 Assert-Contains $cpuOutput "Vulkan=OFF" "CPU-only dry-run"
 
-Write-Step "stable-diffusion bundled ggml dry-run"
-$bundledOutput = & $script -DryRun -CpuOnly -BundledGgml 2>&1 6>&1 | Out-String
-Assert-Contains $bundledOutput "ggml: Bundled" "bundled ggml dry-run"
+Write-Step "stable-diffusion bundled ggml request prefers Core dry-run"
+$bundledPreferredCoreOutput = & $script -DryRun -CpuOnly -BundledGgml -OfxGgmlCorePath $fakeCore 2>&1 6>&1 | Out-String
+Assert-Contains $bundledPreferredCoreOutput "ggml: ofxGgmlCore" "bundled request with Core dry-run"
+Assert-Contains $bundledPreferredCoreOutput "BundledGgml requested but ignored because ofxGgmlCore ggml is available" "bundled request with Core dry-run"
+
+Write-Step "stable-diffusion bundled ggml fallback dry-run"
+$missingCore = Join-Path ([System.IO.Path]::GetTempPath()) "ofxGgmlDiffusion-missing-core"
+if (Test-Path -LiteralPath $missingCore) {
+	Remove-Item -LiteralPath $missingCore -Recurse -Force
+}
+$bundledOutput = & $script -DryRun -CpuOnly -BundledGgml -OfxGgmlCorePath $missingCore 2>&1 6>&1 | Out-String
+Assert-Contains $bundledOutput "ggml: Bundled" "bundled fallback dry-run"
+Assert-Contains $bundledOutput "BundledGgml requested and ofxGgmlCore ggml was not found" "bundled fallback dry-run"
 
 Write-Step "stable-diffusion examples dry-run"
 $examplesOutput = & $script -DryRun -CpuOnly -BuildExamples 2>&1 6>&1 | Out-String

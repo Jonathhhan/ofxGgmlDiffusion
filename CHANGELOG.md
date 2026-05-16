@@ -5,6 +5,8 @@
 - Constrained `scripts\build-stable-diffusion.* -Auto` to enable GPU backends
   only when both the host toolchain and the sibling `ofxGgmlCore` ggml backend
   library are present.
+- Made stable-diffusion.cpp setup prefer `ofxGgmlCore` ggml whenever available,
+  even when `-BundledGgml` is requested.
 - Added an optional headless native bridge smoke test for compiling and linking
   against the generated `stable-diffusion.cpp` header/lib without requiring a
   model download.
