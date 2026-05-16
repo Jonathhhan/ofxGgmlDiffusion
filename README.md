@@ -34,7 +34,6 @@ scripts\build-stable-diffusion.bat
 scripts\build-stable-diffusion.bat -DryRun
 scripts\build-stable-diffusion.bat -CpuOnly
 scripts\build-stable-diffusion.bat -Cuda
-scripts\build-stable-diffusion.bat -BundledGgml
 scripts\test-stable-diffusion-native.bat
 scripts\run-diffusion-runtime-smoke.bat -Json -SummaryOnly
 scripts\doctor-diffusion.bat
@@ -42,9 +41,10 @@ scripts\doctor-diffusion.bat
 
 The script defaults to `-Auto`, reuses ggml from sibling addon
 `../ofxGgmlCore`, enables only backends that are available on the current
-machine, and installs generated files under `libs/stable-diffusion`. Pass
-`-BundledGgml` only when you intentionally want stable-diffusion.cpp to build
-against its own vendored ggml copy.
+machine, and installs generated files under `libs/stable-diffusion`.
+`-BundledGgml` is only a fallback for machines where the Core ggml headers and
+base libraries are not installed; when Core ggml is available the script ignores
+the bundled request and still uses `ofxGgmlCore`.
 
 Generated source, build trees, libraries, executables, models, and output media
 stay out of git.
