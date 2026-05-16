@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxGgmlDiffusion.h"
+#include "ofxImGui.h"
 
 class ofApp : public ofBaseApp {
 public:
@@ -21,6 +22,7 @@ private:
 	ofxGgmlDiffusionAsyncRunner runner;
 	ofxGgmlDiffusionContextSettings settings;
 	ofxGgmlDiffusionRequest request;
+	ofxImGui::Gui gui;
 	ofTexture texture;
 	std::string status;
 	std::string detail;

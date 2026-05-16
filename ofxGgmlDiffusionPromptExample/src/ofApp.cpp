@@ -1,5 +1,7 @@
 #include "ofApp.h"
 
+#include "imgui.h"
+
 #include <algorithm>
 #include <cstdlib>
 #include <sstream>
@@ -26,6 +28,7 @@ std::string getEnvironmentVariable(const std::string& name) {
 
 void ofApp::setup() {
 	ofSetWindowTitle("ofxGgmlDiffusion text-to-image example");
+	gui.setup(nullptr, false);
 	request = ofxGgmlDiffusionUtils::makeTextToImageRequest("a small generative texture study, openFrameworks, soft light");
 	request.negativePrompt = "blurry, low quality";
 	request.width = 512;
@@ -194,17 +197,39 @@ std::string ofApp::getOutputPath() const {
 
 void ofApp::draw() {
 	ofBackground(18);
-	ofSetColor(240);
-	ofDrawBitmapString("ofxGgmlDiffusion text-to-image", 32, 48);
-	ofDrawBitmapString("prompt: " + request.prompt, 32, 78);
-	ofDrawBitmapString("model: " + (settings.modelPath.empty() ? "(unset)" : settings.modelPath), 32, 108);
-	ofDrawBitmapString("photomaker: " + (settings.photoMakerPath.empty() ? "(unset)" : settings.photoMakerPath), 32, 138);
-	ofDrawBitmapString("status: " + status, 32, 168);
-	ofDrawBitmapString(detail, 32, 198);
-	ofDrawBitmapString("R run   C cancel", 32, 228);
+	gui.begin();
+	ImGui::SetNextWindowPos(ImVec2(24.0f, 24.0f), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(620.0f, 360.0f), ImGuiCond_Once);
+	if (ImGui::Begin("ofxGgmlDiffusion Prompt Example")) {
+		if (runner.isRunning()) {
+			if (ImGui::Button("Cancel")) {
+				runner.cancel();
+				status = "cancelling";
+				detail = "Waiting for stable-diffusion.cpp to return control";
+			}
+		} else if (ImGui::Button("Run")) {
+			runGeneration();
+		}
+		ImGui::SameLine();
+		ImGui::TextWrapped("%s", status.c_str());
+
+		ImGui::Separator();
+		ImGui::TextUnformatted("Prompt");
+		ImGui::TextWrapped("%s", request.prompt.c_str());
+		ImGui::TextUnformatted("Model");
+		ImGui::TextWrapped("%s", settings.modelPath.empty() ? "(unset)" : settings.modelPath.c_str());
+		ImGui::TextUnformatted("PhotoMaker");
+		ImGui::TextWrapped("%s", settings.photoMakerPath.empty() ? "(unset)" : settings.photoMakerPath.c_str());
+		ImGui::Separator();
+		ImGui::TextWrapped("%s", detail.c_str());
+	}
+	ImGui::End();
+	gui.end();
+	gui.draw();
+
 	if (texture.isAllocated()) {
 		const float maxSize = 512.0f;
 		const float scale = std::min(maxSize / texture.getWidth(), maxSize / texture.getHeight());
-		texture.draw(32, 262, texture.getWidth() * scale, texture.getHeight() * scale);
+		texture.draw(672, 32, texture.getWidth() * scale, texture.getHeight() * scale);
 	}
 }
