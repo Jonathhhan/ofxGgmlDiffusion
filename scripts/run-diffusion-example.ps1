@@ -3,7 +3,8 @@ param(
 	[switch]$Build,
 	[switch]$DryRun,
 	[string]$Configuration = "Release",
-	[string]$Platform = "x64"
+	[string]$Platform = "x64",
+	[int]$Jobs = 1
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,7 +34,7 @@ if ($env:OFXGGML_LAUNCH_DRY_RUN_ONLY -eq "1") {
 }
 
 if ($Build) {
-	& (Join-Path $scriptRoot "build-diffusion-example.ps1") -Configuration $Configuration -Platform $Platform
+	& (Join-Path $scriptRoot "build-diffusion-example.ps1") -Configuration $Configuration -Platform $Platform -Jobs $Jobs
 	if ($LASTEXITCODE -ne 0) {
 		exit $LASTEXITCODE
 	}
