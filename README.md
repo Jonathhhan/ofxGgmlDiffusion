@@ -34,6 +34,7 @@ scripts\build-stable-diffusion.bat
 scripts\build-stable-diffusion.bat -DryRun
 scripts\build-stable-diffusion.bat -CpuOnly
 scripts\build-stable-diffusion.bat -Cuda
+scripts\build-stable-diffusion.bat -Update
 scripts\test-stable-diffusion-native.bat
 scripts\run-diffusion-runtime-smoke.bat -Json -SummaryOnly
 scripts\doctor-diffusion.bat
@@ -42,6 +43,9 @@ scripts\doctor-diffusion.bat
 The script defaults to `-Auto`, reuses ggml from sibling addon
 `../ofxGgmlCore`, enables only backends that are available on the current
 machine, and installs generated files under `libs/stable-diffusion`.
+`-Update` refreshes the ignored local `stable-diffusion.cpp` source checkout to
+the selected `-Revision` before rebuilding; use it when upstream moved and you
+want to regenerate the local runtime.
 `-BundledGgml` is only a fallback for machines where the Core ggml headers and
 base libraries are not installed; when Core ggml is available the script ignores
 the bundled request and still uses `ofxGgmlCore`.

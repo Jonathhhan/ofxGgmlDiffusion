@@ -90,6 +90,10 @@ Real text-to-image and image-to-video generation smokes should build on this
 entrypoint once model paths, output locations, runtime backends, and media
 cleanup are explicit.
 
+Use `scripts\build-stable-diffusion.bat -Update` when refreshing the ignored
+local `stable-diffusion.cpp` checkout before rebuilding. Keep the updated
+source, build tree, installed headers/libs, and generated media out of git.
+
 ## Safe first tasks
 
 Good early diffusion-lane tasks are:

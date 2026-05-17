@@ -18,6 +18,17 @@ function Assert-Contains {
 	}
 }
 
+function Assert-ContainsCollapsed {
+	param(
+		[string]$Text,
+		[string]$Needle,
+		[string]$Label
+	)
+	$collapsedText = $Text -replace "\s+", " "
+	$collapsedNeedle = $Needle -replace "\s+", " "
+	Assert-Contains $collapsedText $collapsedNeedle $Label
+}
+
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script = Join-Path $scriptRoot "build-stable-diffusion.ps1"
 
@@ -28,6 +39,8 @@ Assert-Contains $defaultOutput "mode: Auto" "default dry-run"
 Assert-Contains $defaultOutput "ggml: ofxGgmlCore" "default dry-run"
 Assert-Contains $defaultOutput "-DSD_USE_SYSTEM_GGML=ON" "default dry-run"
 Assert-Contains $defaultOutput "-DSD_BUILD_EXAMPLES=OFF" "default dry-run"
+Assert-Contains $defaultOutput "source update: OFF" "default dry-run"
+Assert-Contains $defaultOutput "git clone --recursive --depth 1 --branch master" "default dry-run"
 Assert-Contains $defaultOutput "Dry run complete; no files were changed" "default dry-run"
 
 Write-Step "stable-diffusion Core-constrained auto dry-run"
@@ -74,5 +87,13 @@ Assert-Contains $bundledOutput "BundledGgml requested and ofxGgmlCore ggml was n
 Write-Step "stable-diffusion examples dry-run"
 $examplesOutput = & $script -DryRun -CpuOnly -BuildExamples 2>&1 6>&1 | Out-String
 Assert-Contains $examplesOutput "-DSD_BUILD_EXAMPLES=ON" "examples dry-run"
+
+Write-Step "stable-diffusion source update dry-run"
+$updateOutput = & $script -DryRun -CpuOnly -Update 2>&1 6>&1 | Out-String
+Assert-Contains $updateOutput "source update: ON" "source update dry-run"
+Assert-Contains $updateOutput "git -C" "source update dry-run"
+Assert-ContainsCollapsed $updateOutput "fetch --depth 1 origin master" "source update dry-run"
+Assert-ContainsCollapsed $updateOutput "checkout --detach FETCH_HEAD" "source update dry-run"
+Assert-ContainsCollapsed $updateOutput "submodule update --init --recursive --depth 1" "source update dry-run"
 
 Write-Step "stable-diffusion setup dry-run coverage passed"

@@ -18,6 +18,7 @@ param(
 	[switch]$BuildExamples,
 	[switch]$Shared,
 	[switch]$Clean,
+	[switch]$Update,
 	[switch]$DryRun
 )
 
@@ -124,6 +125,46 @@ function Invoke-Checked {
 	& $FilePath @Arguments
 	if ($LASTEXITCODE -ne 0) {
 		throw "$Step failed with exit code $LASTEXITCODE"
+	}
+}
+
+function Get-GitCloneArgs {
+	param(
+		[string]$Remote,
+		[string]$Ref,
+		[string]$Destination
+	)
+	$args = @("clone", "--recursive", "--depth", "1")
+	if (![string]::IsNullOrWhiteSpace($Ref)) {
+		$args += @("--branch", $Ref)
+	}
+	$args += @($Remote, $Destination)
+	return $args
+}
+
+function Get-GitFetchArgs {
+	param([string]$Ref)
+	$args = @("fetch", "--depth", "1", "origin")
+	if (![string]::IsNullOrWhiteSpace($Ref)) {
+		$args += $Ref
+	}
+	return $args
+}
+
+function Assert-StableDiffusionSourceRepo {
+	param(
+		[string]$Path,
+		[string]$ExpectedRemote
+	)
+	if (!(Test-Path -LiteralPath (Join-Path $Path ".git"))) {
+		throw "stable-diffusion.cpp source exists but is not a git checkout: $Path"
+	}
+	$actualRemote = (& git -C $Path remote get-url origin 2>$null | Select-Object -First 1)
+	if ([string]::IsNullOrWhiteSpace($actualRemote)) {
+		throw "stable-diffusion.cpp source has no origin remote: $Path"
+	}
+	if ($actualRemote.TrimEnd("/") -ne $ExpectedRemote.TrimEnd("/")) {
+		throw "stable-diffusion.cpp source origin is $actualRemote, expected $ExpectedRemote. Use a separate -SourceDir or clean the generated source directory."
 	}
 }
 
@@ -316,6 +357,8 @@ $ggmlModeDetail = if ($BundledGgml -and $coreGgmlAvailable) {
 }
 $coreGgmlPackageRoot = Join-Path $BuildDir "ofxggmlcore-cmake"
 $coreGgmlPackageDir = Join-Path $coreGgmlPackageRoot "ggml"
+$cloneArgs = Get-GitCloneArgs -Remote $Repo -Ref $Revision -Destination $SourceDir
+$fetchArgs = Get-GitFetchArgs -Ref $Revision
 
 if ($CpuOnly) {
 	$mode = "CpuOnly"
@@ -428,6 +471,13 @@ if ($DryRun) {
 	Write-Host "  shared: $(Convert-ToOnOff $Shared)"
 	Write-Host "  jobs: $Jobs"
 	Write-Host "  clean: $(Convert-ToOnOff $Clean)"
+	Write-Host "  source update: $(Convert-ToOnOff $Update)"
+	Write-Host "git $($cloneArgs -join ' ')"
+	if ($Update) {
+		Write-Host "git -C $SourceDir $($fetchArgs -join ' ')"
+		Write-Host "git -C $SourceDir checkout --detach FETCH_HEAD"
+		Write-Host "git -C $SourceDir submodule update --init --recursive --depth 1"
+	}
 	Write-Host "cmake $($cmakeConfigure -join ' ')"
 	Write-Host "cmake --build $BuildDir --config $Configuration --target stable-diffusion --parallel $Jobs"
 	Write-Host "cmake --install $BuildDir --config $Configuration"
@@ -448,10 +498,19 @@ if ($Clean -and (Test-Path -LiteralPath $BuildDir)) {
 
 if (!(Test-Path -LiteralPath $SourceDir -PathType Container)) {
 	Write-Step "Cloning stable-diffusion.cpp"
-	Invoke-Checked "git clone stable-diffusion.cpp" "git" @(
-		"clone", "--recursive", "--depth", "1", "--branch", $Revision, $Repo, $SourceDir)
+	Invoke-Checked "git clone stable-diffusion.cpp" "git" $cloneArgs
 } else {
-	Write-Step "stable-diffusion.cpp source already exists; skipping clone"
+	Assert-StableDiffusionSourceRepo -Path $SourceDir -ExpectedRemote $Repo
+	if ($Update) {
+		Write-Step "Updating stable-diffusion.cpp source"
+		Invoke-Checked "git fetch stable-diffusion.cpp" "git" (@("-C", $SourceDir) + $fetchArgs)
+		Invoke-Checked "git checkout stable-diffusion.cpp revision" "git" @(
+			"-C", $SourceDir, "checkout", "--detach", "FETCH_HEAD")
+		Invoke-Checked "git update stable-diffusion.cpp submodules" "git" @(
+			"-C", $SourceDir, "submodule", "update", "--init", "--recursive", "--depth", "1")
+	} else {
+		Write-Step "stable-diffusion.cpp source already exists; skipping clone"
+	}
 }
 
 if (!$useBundledGgml) {
