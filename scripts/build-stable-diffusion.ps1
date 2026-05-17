@@ -132,6 +132,52 @@ function Convert-ToCMakePath {
 	return ([System.IO.Path]::GetFullPath($Path) -replace "\\", "/")
 }
 
+function Update-AddonConfigLine {
+	param(
+		[System.Collections.Generic.List[string]]$Lines,
+		[string]$Target,
+		[bool]$Enable,
+		[string]$Label
+	)
+	$trimmedTarget = $Target.Trim()
+	$commentedTarget = "# $trimmedTarget"
+	$found = $false
+	for ($i = 0; $i -lt $Lines.Count; ++$i) {
+		$rawLine = $Lines[$i]
+		$trimmedLine = $rawLine.Trim()
+		if ($trimmedLine -ne $trimmedTarget -and $trimmedLine -ne $commentedTarget) {
+			continue
+		}
+
+		$found = $true
+		$indent = $rawLine.Substring(0, $rawLine.Length - $rawLine.TrimStart().Length)
+		if ($Enable -and $trimmedLine -eq $commentedTarget) {
+			$Lines[$i] = "$indent$trimmedTarget"
+		} elseif (!$Enable -and $trimmedLine -eq $trimmedTarget) {
+			$Lines[$i] = "$indent# $trimmedTarget"
+		}
+	}
+
+	if (!$found) {
+		throw "addon_config.mk does not contain expected $Label line: $trimmedTarget"
+	}
+}
+
+function Update-AddonConfigForStableDiffusionRuntime {
+	param(
+		[System.Collections.Generic.List[string]]$Lines,
+		[bool]$Enable
+	)
+	$stableDiffusionLib = if (Test-WindowsHost) {
+		"ADDON_LIBS += libs/stable-diffusion/lib/stable-diffusion.lib"
+	} else {
+		"ADDON_LIBS += libs/stable-diffusion/lib/libstable-diffusion.a"
+	}
+
+	Update-AddonConfigLine -Lines $Lines -Target "ADDON_CFLAGS += -DOFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION" -Enable $Enable -Label "OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION flag"
+	Update-AddonConfigLine -Lines $Lines -Target $stableDiffusionLib -Enable $Enable -Label "stable-diffusion library"
+}
+
 function Add-RequiredLibraryPath {
 	param(
 		[System.Collections.Generic.List[string]]$Libraries,
@@ -434,5 +480,12 @@ Write-Step "Installing stable-diffusion.cpp runtime"
 Invoke-Checked "cmake install stable-diffusion.cpp" "cmake" @(
 	"--install", $BuildDir,
 	"--config", $Configuration)
+
+$addonConfigPath = Join-Path $addonRoot "addon_config.mk"
+$addonConfig = New-Object System.Collections.Generic.List[string]
+$addonConfig.AddRange((Get-Content -LiteralPath $addonConfigPath))
+Update-AddonConfigForStableDiffusionRuntime -Lines $addonConfig -Enable $true
+Set-Content -LiteralPath $addonConfigPath -Value $addonConfig -Encoding ASCII
+Write-Step "Updated addon_config.mk for stable-diffusion runtime linkage"
 
 Write-Step "Done. stable-diffusion.cpp runtime installed under $InstallDir"

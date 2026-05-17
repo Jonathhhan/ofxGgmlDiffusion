@@ -1,4 +1,11 @@
 #include "ofApp.h"
+#if __has_include("ofxGgmlDiffusionNativeBackend.h")
+#include "ofxGgmlDiffusionNativeBackend.h"
+#elif __has_include("ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h")
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
+#else
+#error "Cannot find ofxGgmlDiffusionNativeBackend.h. Ensure ofxGgmlDiffusion is linked correctly."
+#endif
 
 #include "imgui.h"
 
@@ -24,6 +31,15 @@ std::string getEnvironmentVariable(const std::string& name) {
 	return value != nullptr ? value : "";
 #endif
 }
+
+bool isNativeDiffusionBackendEnabled() {
+	const auto capabilities = ofxGgmlDiffusionGetNativeCapabilities();
+	return capabilities.stableDiffusionEnabled;
+}
+
+std::string getNativeBackendSetupHint() {
+	return "stable-diffusion.cpp is opt-in. Run ..\\scripts\\build-stable-diffusion.bat, then regenerate this example project.";
+}
 }
 
 void ofApp::setup() {
@@ -40,7 +56,10 @@ void ofApp::setup() {
 	loadPhotoMakerReferences();
 
 	status = ofxGgmlDiffusionUtils::describe(request);
-	if (settings.modelPath.empty()) {
+	if (!isNativeDiffusionBackendEnabled()) {
+		detail = getNativeBackendSetupHint();
+		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
+	} else if (settings.modelPath.empty()) {
 		detail = "Set OFXGGML_DIFFUSION_MODEL or place a model at bin/data/models/model.safetensors";
 	} else {
 		detail = "Press R to generate";

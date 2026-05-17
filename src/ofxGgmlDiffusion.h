@@ -6,6 +6,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionImageUtils.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionGgufGanBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.h"

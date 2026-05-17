@@ -2,6 +2,7 @@
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.h"
+#include "ofxGgmlDiffusion/ofxGgmlDiffusionGgufGanBackend.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.h"
 #include "ofxGgmlDiffusion/ofxGgmlDiffusionUtils.h"
 #include "ofxGgmlDiffusionVersion.h"
@@ -280,6 +281,49 @@ int main() {
 		return 1;
 	}
 	std::remove(presetPath.c_str());
+
+	ofxGgmlDiffusionGgufGanBackend ggufGan;
+	if (ggufGan.getBackendName() != "ggml-gguf-gan" ||
+		ggufGan.getBackendFamily() != ofxGgmlDiffusionBackendFamily::GAN ||
+		ggufGan.isLoaded()) {
+		std::cerr << "GGUF GAN backend reported unexpected initial state\n";
+		return 1;
+	}
+	const auto missingModelSetup = ggufGan.setup(ofxGgmlDiffusionContextSettings{});
+	if (missingModelSetup.isOk() || ggufGan.isLoaded()) {
+		std::cerr << "GGUF GAN backend should reject missing model path in setup\n";
+		return 1;
+	}
+	ofxGgmlDiffusionContextSettings wrongExtSettings;
+	wrongExtSettings.modelPath = "tiny-mlp.ofxggmlgan";
+	const auto wrongExtSetup = ggufGan.setup(wrongExtSettings);
+	if (wrongExtSetup.isOk() || ggufGan.isLoaded()) {
+		std::cerr << "GGUF GAN backend should reject non-GGUF generator path\n";
+		return 1;
+	}
+	std::ofstream fakeGguf("fake-generator.gguf", std::ios::binary);
+	fakeGguf << "not-a-gguf-file";
+	fakeGguf.close();
+	ofxGgmlDiffusionContextSettings invalidModelSettings;
+	invalidModelSettings.modelPath = "fake-generator.gguf";
+	const auto invalidModelSetup = ggufGan.setup(invalidModelSettings);
+	if (invalidModelSetup.isOk()) {
+		std::cerr << "invalid GGUF model should not setup production GAN backend\n";
+		std::remove("fake-generator.gguf");
+		return 1;
+	}
+	if (ggufGan.isLoaded()) {
+		std::cerr << "GGUF GAN backend remained loaded after invalid model setup\n";
+		std::remove("fake-generator.gguf");
+		return 1;
+	}
+	const auto invalidGenResult = ggufGan.generate(ganRequest);
+	if (invalidGenResult.isOk()) {
+		std::cerr << "GGUF GAN backend generated before successful setup\n";
+		std::remove("fake-generator.gguf");
+		return 1;
+	}
+	std::remove("fake-generator.gguf");
 
 	const std::filesystem::path datasetPath = "tiny-gan-dataset-test";
 	std::filesystem::remove_all(datasetPath);

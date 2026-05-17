@@ -8,6 +8,9 @@ The native runtime is opt-in. Build it first:
 ..\scripts\build-stable-diffusion.bat
 ```
 
+After build, regenerate the example project (projectGenerator) and rebuild so the
+addon config macro is picked up.
+
 Then point the example at a local model with `OFXGGML_DIFFUSION_MODEL`, or place
 one at `bin/data/models/model.safetensors`.
 

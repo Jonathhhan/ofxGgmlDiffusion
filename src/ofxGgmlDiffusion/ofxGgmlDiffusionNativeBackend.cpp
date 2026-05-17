@@ -269,7 +269,7 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::setup(const ofxGgmlDiffusi
 	return makeOk("stable-diffusion.cpp context loaded");
 #else
 	(void)settings;
-	return makeError("stable-diffusion.cpp native backend is not enabled. Run scripts/build-stable-diffusion.*, then compile with OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION.");
+	return makeError("stable-diffusion.cpp native backend is not enabled. Run scripts/build-stable-diffusion.* to install the runtime and enable OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION automatically.");
 #endif
 }
 
@@ -457,7 +457,7 @@ ofxGgmlDiffusionResult ofxGgmlDiffusionNativeBackend::generate(const ofxGgmlDiff
 	return makeError("stable-diffusion.cpp generated empty image data");
 #else
 	(void)request;
-	return makeError("stable-diffusion.cpp native backend is not enabled. Run scripts/build-stable-diffusion.*, then compile with OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION.");
+	return makeError("stable-diffusion.cpp native backend is not enabled. Run scripts/build-stable-diffusion.* to install the runtime and enable OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION automatically.");
 #endif
 }
 

@@ -160,9 +160,9 @@ $forbidden = @(
 )
 
 foreach ($relative in $forbidden) {
-	$path = Join-Path $addonRoot $relative
-	if (Test-Path -LiteralPath $path) {
-		throw "Generated or local-only path should not be committed here: $relative"
+	$tracked = git -C $addonRoot ls-files -- $relative
+	if ($tracked) {
+		throw "Generated or local-only path is tracked and should not be committed here: $relative"
 	}
 }
 

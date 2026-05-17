@@ -114,6 +114,161 @@ function Get-RelativeProjectPath {
 		$projectUri.MakeRelativeUri($fileUri).ToString()).Replace("/", "\")
 }
 
+function Get-ExampleAddons {
+	param([string]$ExampleRoot)
+	$addonsMake = Join-Path $ExampleRoot "addons.make"
+	if (!(Test-Path -LiteralPath $addonsMake)) {
+		return @()
+	}
+	return Get-Content -LiteralPath $addonsMake |
+		ForEach-Object { $_.Trim() } |
+		Where-Object { $_ -and -not $_.StartsWith("#") }
+}
+
+function Get-AddonSourceExcludes {
+	param([string]$AddonRoot)
+	$configValues = Get-AddonConfigValues -AddonRoot $AddonRoot
+	if (!$configValues) {
+		return @()
+	}
+	$excludePaths = New-Object System.Collections.Generic.List[string]
+	foreach ($path in @($configValues["ADDON_SOURCES_EXCLUDE"])) {
+		$normPath = ([string]$path).Trim() -replace '/', '\' -replace '%', '*'
+		if (-not [string]::IsNullOrWhiteSpace($normPath) -and -not $excludePaths.Contains($normPath)) {
+			$excludePaths.Add($normPath)
+		}
+	}
+	foreach ($path in @($configValues["ADDON_INCLUDES_EXCLUDE"])) {
+		$normPath = ([string]$path).Trim() -replace '/', '\' -replace '%', '*'
+		if (-not [string]::IsNullOrWhiteSpace($normPath) -and -not $excludePaths.Contains($normPath)) {
+			$excludePaths.Add($normPath)
+		}
+	}
+	return @($excludePaths)
+}
+
+function Get-AddonConfigValues {
+	param([string]$AddonRoot)
+
+	$values = @{}
+	$excludePaths = New-Object System.Collections.Generic.List[string]
+	$configPath = Join-Path $AddonRoot "addon_config.mk"
+	if (!(Test-Path -LiteralPath $configPath)) {
+		return $values
+	}
+	$section = ""
+	Get-Content -LiteralPath $configPath | ForEach-Object {
+		$line = ([string]$_ -replace "\s+#.*$", "").Trim()
+		if ([string]::IsNullOrWhiteSpace($line)) {
+			return
+		}
+		if ($line -match '^([A-Za-z0-9_/]+):\s*$') {
+			$section = $matches[1]
+			return
+		}
+		if (($section -ne "common" -and $section -ne "vs")) {
+			return
+		}
+		if ($line -match '^(ADDON_[A-Z_]+)\s*(?:\+)?=\s*(.+)$') {
+			$name = $matches[1]
+			foreach ($part in @($matches[2] -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+				if (!$values.ContainsKey($name)) {
+					$values[$name] = New-Object System.Collections.Generic.List[string]
+				}
+				if (!$values[$name].Contains($part)) {
+					$values[$name].Add($part)
+				}
+			}
+		}
+	}
+	return $values
+}
+
+function Test-AddonSourceExcluded {
+	param(
+		[string]$RelativePath,
+		[string[]]$ExcludePatterns
+	)
+	$normalized = $RelativePath -replace '/', '\'
+	foreach ($pattern in $ExcludePatterns) {
+		if ($normalized -like $pattern) {
+			return $true
+		}
+	}
+	return $false
+}
+
+function Get-AddonSourceRoots {
+	param([string]$AddonRoot)
+	$roots = New-Object System.Collections.Generic.List[string]
+	foreach ($name in @("src", "libs")) {
+		$candidate = Join-Path $AddonRoot $name
+		if (Test-Path -LiteralPath $candidate) {
+			$roots.Add($candidate)
+		}
+	}
+	return @($roots)
+}
+
+function Get-AddonIncludes {
+	param([string]$AddonRoot)
+	$includePaths = New-Object System.Collections.Generic.List[string]
+	$includeFromMk = New-Object System.Collections.Generic.List[string]
+	$excludePaths = Get-AddonSourceExcludes -AddonRoot $AddonRoot
+	$config = Get-AddonConfigValues -AddonRoot $AddonRoot
+	foreach ($path in @($config["ADDON_INCLUDES"])) {
+		$tempPath = ([string]$path).Trim()
+		if (-not [string]::IsNullOrWhiteSpace($tempPath)) {
+			$normPath = $tempPath -replace '/', '\' -replace '%', '*'
+			if (-not $includeFromMk.Contains($normPath)) {
+				$includeFromMk.Add($normPath)
+			}
+		}
+	}
+
+	foreach ($path in $includeFromMk) {
+		if (Test-AddonSourceExcluded -RelativePath $path -ExcludePatterns $excludePaths) {
+			continue
+		}
+		$fullPath = Join-Path $AddonRoot $path
+		if (Test-Path -LiteralPath $fullPath -PathType Container) {
+			$includePaths.Add($fullPath)
+		}
+	}
+
+	$srcRoot = Join-Path $AddonRoot "src"
+	if (Test-Path -LiteralPath $srcRoot -PathType Container) {
+		$includePaths.Add($srcRoot)
+	}
+	$libsRoot = Join-Path $AddonRoot "libs"
+	if (Test-Path -LiteralPath $libsRoot -PathType Container) {
+		Get-ChildItem -LiteralPath $libsRoot -Directory | ForEach-Object {
+			$candidate = $_
+			$relative = Get-RelativeProjectPath -ProjectDir $AddonRoot -FilePath $candidate.FullName
+			if (Test-AddonSourceExcluded -RelativePath $relative -ExcludePatterns $excludePaths) {
+				return
+			}
+			$includePaths.Add($candidate.FullName)
+			foreach ($subName in @("src", "include", "backends")) {
+				$subDir = Join-Path $candidate.FullName $subName
+				if (Test-Path -LiteralPath $subDir -PathType Container) {
+					$includePaths.Add($subDir)
+				}
+			}
+			$extrasDir = Join-Path $candidate.FullName "extras"
+			if (Test-Path -LiteralPath $extrasDir -PathType Container) {
+				$includePaths.Add($extrasDir)
+			}
+		}
+	}
+	$hash = New-Object System.Collections.Generic.HashSet[string]
+	foreach ($candidate in $includePaths) {
+		$normalized = [System.IO.Path]::GetFullPath($candidate)
+		$hash.Add($normalized) | Out-Null
+	}
+	return @($hash)
+}
+
 function Add-VisualStudioProjectItem {
 	param(
 		[xml]$Doc,
@@ -145,6 +300,127 @@ function Add-VisualStudioProjectItem {
 	return $true
 }
 
+function Add-SemicolonNodeValue {
+	param(
+		[xml]$Doc,
+		[System.Xml.XmlNamespaceManager]$Namespace,
+		[string]$NodeName,
+		[string]$Value,
+		[switch]$Apply
+	)
+
+	if ([string]::IsNullOrWhiteSpace($Value)) {
+		return $false
+	}
+	$nodes = @($Doc.SelectNodes("//msb:$NodeName", $Namespace))
+	$changed = $false
+	foreach ($node in $nodes) {
+		$parts = New-Object System.Collections.Generic.List[string]
+		foreach ($part in @($node.InnerText -split ";" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+			$parts.Add([string]$part)
+		}
+		if (!$parts.Contains($Value)) {
+			$changed = $true
+			if ($Apply) {
+				$parts.Add($Value)
+				$node.InnerText = ($parts.ToArray() -join ";")
+			}
+		}
+	}
+	return $changed
+}
+
+function Get-AddonLibs {
+	param([string]$AddonRoot)
+
+	$libraryReferences = New-Object System.Collections.Generic.List[string]
+	$config = Get-AddonConfigValues -AddonRoot $AddonRoot
+	foreach ($library in @($config["ADDON_LIBS"])) {
+		$libraryReferences.Add([string]$library)
+	}
+	return @($libraryReferences | Where-Object { $_ -notmatch '^\s*$' })
+}
+
+function ConvertTo-ProjectLibraryReference {
+	param(
+		[string]$AddonRoot,
+		[string]$ProjectDir,
+		[string]$Library
+	)
+
+	$value = ([string]$Library).Trim().Trim('"')
+	if ([string]::IsNullOrWhiteSpace($value)) {
+		return $null
+	}
+
+	$normalized = $value -replace "/", "\"
+	$parent = Split-Path -Parent $normalized
+	$name = [System.IO.Path]::GetFileName($normalized)
+	$directory = ""
+	if ($parent) {
+		if ($parent -match '^\$\(' -or [System.IO.Path]::IsPathRooted($parent)) {
+			$directory = $parent
+		} else {
+			$libraryPath = Join-Path $AddonRoot $parent
+			if (Test-Path -LiteralPath $libraryPath -PathType Container) {
+				$directory = Get-RelativeProjectPath -ProjectDir $ProjectDir -FilePath $libraryPath
+			}
+		}
+	}
+
+	return [pscustomobject]@{
+		Dependency = $name
+		Directory = $directory
+	}
+}
+
+function Remove-StaleDependencyProjectItems {
+	param(
+		[xml]$Doc,
+		[System.Xml.XmlNamespaceManager]$Namespace,
+		[string[]]$AllowedClCompile,
+		[string[]]$AllowedClInclude,
+		[string[]]$ManagedPrefixes
+	)
+	$managedPrefixes = @($ManagedPrefixes)
+	$allowedCompile = New-Object "System.Collections.Generic.HashSet[string]" ([StringComparer]::OrdinalIgnoreCase)
+	$allowedInclude = New-Object "System.Collections.Generic.HashSet[string]" ([StringComparer]::OrdinalIgnoreCase)
+	foreach ($item in $AllowedClCompile) { [void]$allowedCompile.Add($item) }
+	foreach ($item in $AllowedClInclude) { [void]$allowedInclude.Add($item) }
+
+	$changed = $false
+	foreach ($group in @($Doc.SelectNodes("//msb:ItemGroup", $Namespace))) {
+		foreach ($node in @($group.SelectNodes("msb:ClCompile|msb:ClInclude", $Namespace))) {
+			$include = $node.Include
+			if ([string]::IsNullOrWhiteSpace($include)) {
+				continue
+			}
+			$isManaged = $false
+			foreach ($prefix in $managedPrefixes) {
+				if ($include -like "${prefix}*") {
+					$isManaged = $true
+					break
+				}
+			}
+			if (-not $isManaged) {
+				continue
+			}
+			if ($node.LocalName -eq "ClCompile") {
+				if (-not $allowedCompile.Contains($include)) {
+					$group.RemoveChild($node) | Out-Null
+					$changed = $true
+				}
+			} elseif ($node.LocalName -eq "ClInclude") {
+				if (-not $allowedInclude.Contains($include)) {
+					$group.RemoveChild($node) | Out-Null
+					$changed = $true
+				}
+			}
+		}
+	}
+	return $changed
+}
+
 function Repair-DiffusionGeneratedProject {
 	param(
 		[string]$Project,
@@ -160,10 +436,42 @@ function Repair-DiffusionGeneratedProject {
 	$projectDir = Split-Path -Parent $Project
 	$changed = $false
 
-	$includeDirs = @(
-		"..\src",
-		"..\libs\stable-diffusion\include"
-	)
+	$addonsDir = Split-Path -Path $AddonRoot -Parent
+	$addons = Get-ExampleAddons -ExampleRoot $projectDir
+	if ($addons.Count -eq 0) {
+		$addons = @("ofxGgmlDiffusion")
+	}
+	if ($addons -notcontains "ofxGgmlDiffusion") {
+		$addons = @("ofxGgmlDiffusion") + $addons
+	}
+	$includeDirs = New-Object System.Collections.Generic.HashSet[string]
+	$dependencyReferences = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
+	$dependencyDirectories = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
+	foreach ($addon in $addons) {
+		$addonRoot = Join-Path $addonsDir $addon
+		if (!(Test-Path -LiteralPath $addonRoot)) {
+			continue
+		}
+		foreach ($absoluteInclude in Get-AddonIncludes -AddonRoot $addonRoot) {
+			$relativeInclude = Get-RelativeProjectPath -ProjectDir $projectDir -FilePath $absoluteInclude
+			$normalizedRelativeInclude = $relativeInclude -replace '/', '\'
+			if (-not $includeDirs.Contains($normalizedRelativeInclude)) {
+				$includeDirs.Add($normalizedRelativeInclude) | Out-Null
+			}
+		}
+		foreach ($library in Get-AddonLibs -AddonRoot $addonRoot) {
+			$reference = ConvertTo-ProjectLibraryReference -AddonRoot $addonRoot -ProjectDir $projectDir -Library ([string]$library)
+			if (!$reference) {
+				continue
+			}
+			if ($reference.Dependency -and -not $dependencyReferences.Contains($reference.Dependency)) {
+				$dependencyReferences.Add($reference.Dependency) | Out-Null
+			}
+			if ($reference.Directory -and -not $dependencyDirectories.Contains($reference.Directory)) {
+				$dependencyDirectories.Add($reference.Directory) | Out-Null
+			}
+		}
+	}
 	foreach ($node in @($doc.SelectNodes("//msb:AdditionalIncludeDirectories", $namespace))) {
 		$parts = @($node.InnerText -split ";" | Where-Object { $_ })
 		foreach ($includeDir in $includeDirs) {
@@ -175,18 +483,56 @@ function Repair-DiffusionGeneratedProject {
 		$node.InnerText = $parts -join ";"
 	}
 
-	$sourceRoot = Join-Path $AddonRoot "src"
-	Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | ForEach-Object {
-		$relative = Get-RelativeProjectPath -ProjectDir $projectDir -FilePath $_.FullName
-		if ($_.Extension -in @(".cpp", ".cxx", ".cc")) {
-			if (Add-VisualStudioProjectItem -Doc $doc -Namespace $namespace -Tag "ClCompile" -Include $relative) {
-				$changed = $true
-			}
-		} elseif ($_.Extension -in @(".h", ".hpp")) {
-			if (Add-VisualStudioProjectItem -Doc $doc -Namespace $namespace -Tag "ClInclude" -Include $relative) {
+	if ($dependencyReferences.Count -gt 0) {
+		foreach ($dependency in @($dependencyReferences | Sort-Object)) {
+			if (Add-SemicolonNodeValue -Doc $doc -Namespace $namespace -NodeName "AdditionalDependencies" -Value $dependency -Apply) {
 				$changed = $true
 			}
 		}
+		foreach ($directory in @($dependencyDirectories | Sort-Object)) {
+			if (Add-SemicolonNodeValue -Doc $doc -Namespace $namespace -NodeName "AdditionalLibraryDirectories" -Value $directory -Apply) {
+				$changed = $true
+			}
+		}
+	}
+
+	$desiredClCompile = New-Object "System.Collections.Generic.HashSet[string]" ([StringComparer]::OrdinalIgnoreCase)
+	$desiredClInclude = New-Object "System.Collections.Generic.HashSet[string]" ([StringComparer]::OrdinalIgnoreCase)
+	$managedPrefixes = @()
+
+	foreach ($addon in $addons) {
+		$addonRoot = Join-Path $addonsDir $addon
+		if (!(Test-Path -LiteralPath $addonRoot)) {
+			Write-Step "Skipping missing addon path for $addon"
+			continue
+		}
+		$managedPrefixes += "..\..\" + $addon + "\"
+		$excludePaths = Get-AddonSourceExcludes -AddonRoot $addonRoot
+		foreach ($sourceRoot in Get-AddonSourceRoots -AddonRoot $addonRoot) {
+			Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | ForEach-Object {
+				$relativeToAddon = Get-RelativeProjectPath -ProjectDir $addonRoot -FilePath $_.FullName
+				$normalizedRelative = $relativeToAddon -replace '/', '\'
+				if (-not (Test-AddonSourceExcluded -RelativePath $normalizedRelative -ExcludePatterns $excludePaths)) {
+					$relative = Get-RelativeProjectPath -ProjectDir $projectDir -FilePath $_.FullName
+					if ($_.Extension -in @(".cpp", ".cxx", ".cc")) {
+						[void]$desiredClCompile.Add($relative)
+						if (Add-VisualStudioProjectItem -Doc $doc -Namespace $namespace -Tag "ClCompile" -Include $relative) {
+							$changed = $true
+						}
+					} elseif ($_.Extension -in @(".h", ".hpp")) {
+						[void]$desiredClInclude.Add($relative)
+						if (Add-VisualStudioProjectItem -Doc $doc -Namespace $namespace -Tag "ClInclude" -Include $relative) {
+							$changed = $true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	$managedPrefixes = @($managedPrefixes | Select-Object -Unique)
+	if (Remove-StaleDependencyProjectItems -Doc $doc -Namespace $namespace -AllowedClCompile $desiredClCompile -AllowedClInclude $desiredClInclude -ManagedPrefixes $managedPrefixes) {
+		$changed = $true
 	}
 
 	foreach ($node in @($doc.SelectNodes("//msb:PostBuildEvent/msb:Command", $namespace))) {

@@ -6,13 +6,35 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
+#include <string_view>
 
 namespace {
+	const char* backendModeNames[] = {
+		"Proof (deterministic tiny)",
+		"Production (GGUF model)"
+	};
+
 	const char* generatorModeNames[] = {
 		"Built-in",
 		"Preset",
 		"Preview preset"
 	};
+
+	std::string getEnvironmentVariable(const std::string& name) {
+#if defined(_MSC_VER)
+		char* value = nullptr;
+		size_t valueSize = 0;
+		if (_dupenv_s(&value, &valueSize, name.c_str()) != 0 || value == nullptr) {
+			return "";
+		}
+		std::string result(value);
+		std::free(value);
+		return result;
+#else
+		const char* value = std::getenv(name.c_str());
+		return value != nullptr ? value : "";
+#endif
+	}
 
 	std::string firstLine(const std::string& text) {
 		const auto lineBreak = text.find('\n');
@@ -20,6 +42,44 @@ namespace {
 			return text;
 		}
 		return text.substr(0, lineBreak);
+	}
+
+	bool hasExtensionIgnoreCase(std::string_view value, std::string_view extension) {
+		if (value.size() < extension.size()) {
+			return false;
+		}
+		const auto suffix = value.substr(value.size() - extension.size());
+		if (suffix.size() != extension.size()) {
+			return false;
+		}
+		return std::equal(
+			extension.begin(),
+			extension.end(),
+			suffix.begin(),
+			suffix.end(),
+			[](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
+	}
+
+	std::string describePathOrNone(const std::string& path) {
+		return path.empty() ? "none" : ofFilePath::getFileName(path);
+	}
+
+	std::string findFirstGgufGenerator(const std::string& modelsPath) {
+		if (!ofFile::doesFileExist(modelsPath, false)) {
+			return "";
+		}
+		ofDirectory models(modelsPath);
+		if (!models.isDirectory()) {
+			return "";
+		}
+		models.listDir();
+		for (const auto& file : models.getFiles()) {
+			const auto filename = file.getFileName();
+			if (hasExtensionIgnoreCase(filename, ".gguf")) {
+				return file.getAbsolutePath();
+			}
+		}
+		return "";
 	}
 }
 
@@ -30,19 +90,36 @@ void ofApp::setup() {
 	prompt = "small monochrome icon set for an openFrameworks tool";
 	std::snprintf(promptBuffer.data(), promptBuffer.size(), "%s", prompt.c_str());
 
-	backend = std::make_unique<ofxGgmlDiffusionTinyGanBackend>();
+	backendMode = GeneratorBackendMode::Proof;
+	backendModeIndex = static_cast<int>(backendMode);
+	rebuildBackend();
+	productionGeneratorPath = findProductionGeneratorPath();
+	refreshProductionPathBuffer();
 	rebuildRequest();
 	updateTrainingPlan();
 	refreshFixtureTextures();
 
 	status = ofxGgmlDiffusionUtils::describe(request);
 	if (backend->isAvailable()) {
-		detail = "Ready";
+		detail = "Proof lane: tiny synthetic ggml-MLP (not trained).";
 	} else {
-		detail = "Run ofxGgmlCore scripts\\setup-ggml.bat, then rebuild this example";
+		detail = "Proof lane unavailable. Run ofxGgmlCore scripts\\setup-ggml.bat, then rebuild this example.";
+	}
+	if (backendMode == GeneratorBackendMode::Production) {
+		detail = "Production path: " + describePathOrNone(findProductionGeneratorPath());
 	}
 	ofLogNotice("ofxGgmlDiffusionGanExample") << status;
 	ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
+}
+
+void ofApp::rebuildBackend() {
+	if (backendMode == GeneratorBackendMode::Production) {
+		backend = std::make_unique<ofxGgmlDiffusionGgufGanBackend>();
+		settings.modelPath = findProductionGeneratorPath();
+		return;
+	}
+	backend = std::make_unique<ofxGgmlDiffusionTinyGanBackend>();
+	settings.modelPath.clear();
 }
 
 void ofApp::update() {
@@ -55,6 +132,29 @@ void ofApp::keyPressed(int key) {
 }
 
 void ofApp::runGeneration() {
+	if (backendMode == GeneratorBackendMode::Production) {
+		productionGeneratorPath = findProductionGeneratorPath();
+		settings.modelPath = productionGeneratorPath;
+		request.gan.generatorPath = productionGeneratorPath;
+		if (settings.modelPath.empty()) {
+			status = "backend unavailable";
+			detail = "Production lane requires a GGUF generator model. Place one in bin/data/models or use Browse / set OFXGGML_GAN_GENERATOR.";
+			ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
+			return;
+		}
+		if (!ofFile::doesFileExist(settings.modelPath, false)) {
+			status = "backend unavailable";
+			detail = "Production generator file not found: " + settings.modelPath;
+			ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
+			return;
+		}
+		if (!hasExtensionIgnoreCase(settings.modelPath, ".gguf")) {
+			status = "backend unavailable";
+			detail = "Production lane requires a .gguf generator file.";
+			ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
+			return;
+		}
+	}
 	rebuildRequest();
 	const auto validation = ofxGgmlDiffusionUtils::validate(request);
 	if (!validation) {
@@ -88,24 +188,47 @@ void ofApp::drawGui() {
 		rebuildRequest();
 	}
 
-	if (ImGui::Combo("Generator", &generatorModeIndex, generatorModeNames, 3)) {
-		generatorMode = static_cast<GeneratorMode>(generatorModeIndex);
+	if (ImGui::Combo("Backend lane", &backendModeIndex, backendModeNames, 2)) {
+		backendMode = static_cast<GeneratorBackendMode>(backendModeIndex);
+		rebuildBackend();
+		productionGeneratorPath = findProductionGeneratorPath();
+		refreshProductionPathBuffer();
+		if (backendMode == GeneratorBackendMode::Proof) {
+			detail = "Proof lane selected.";
+			updateTrainingPlan();
+			refreshFixtureTextures();
+		} else {
+			detail = "Production lane selected. GGUF: " + describePathOrNone(findProductionGeneratorPath());
+		}
 		rebuildRequest();
+	}
+
+	if (backendMode == GeneratorBackendMode::Proof) {
+		drawProofControls();
+	} else {
+		drawProductionControls();
 	}
 
 	if (ImGui::Button("Run")) {
 		runGeneration();
 	}
-	ImGui::SameLine();
-	if (ImGui::Button("Refresh plan")) {
-		updateTrainingPlan();
-		refreshFixtureTextures();
-	}
 
 	ImGui::Separator();
+	drawStatus();
+
 	ImGui::Text("Status: %s", status.c_str());
 	ImGui::TextWrapped("%s", detail.c_str());
 	ImGui::TextWrapped("Generator path: %s", request.gan.generatorPath.c_str());
+
+	ImGui::End();
+}
+
+void ofApp::drawProofControls() {
+	ImGui::Separator();
+	if (ImGui::Combo("Generator", &generatorModeIndex, generatorModeNames, 3)) {
+		generatorMode = static_cast<GeneratorMode>(generatorModeIndex);
+		rebuildRequest();
+	}
 
 	ImGui::Separator();
 	bool settingsChanged = false;
@@ -116,6 +239,7 @@ void ofApp::drawGui() {
 	settingsChanged |= ImGui::SliderFloat("Learning rate", &learningRate, 0.0001f, 0.01f, "%.4f");
 	if (settingsChanged) {
 		updateTrainingPlan();
+		refreshFixtureTextures();
 	}
 
 	if (ImGui::Button("Create fixtures")) {
@@ -141,8 +265,66 @@ void ofApp::drawGui() {
 	if (!trainingSummary.empty()) {
 		ImGui::TextWrapped("%s", trainingSummary.c_str());
 	}
+}
 
-	ImGui::End();
+void ofApp::drawProductionControls() {
+	ImGui::Separator();
+	if (ImGui::InputText("GGUF generator", productionGeneratorPathBuffer.data(), productionGeneratorPathBuffer.size())) {
+		productionGeneratorPath = productionGeneratorPathBuffer.data();
+		rebuildRequest();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Browse")) {
+		auto result = ofSystemLoadDialog("Load GAN GGUF", false);
+		if (result.bSuccess) {
+			productionGeneratorPath = result.getPath();
+			refreshProductionPathBuffer();
+			rebuildRequest();
+		}
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("From environment")) {
+		const auto envGenerator = getEnvironmentVariable("OFXGGML_GAN_GENERATOR");
+		if (!envGenerator.empty()) {
+			productionGeneratorPath = envGenerator;
+			refreshProductionPathBuffer();
+			rebuildRequest();
+		}
+	}
+	if (productionGeneratorPath.empty()) {
+		ImGui::TextWrapped("No generator selected.");
+	} else if (!ofFile::doesFileExist(productionGeneratorPath, false)) {
+		ImGui::TextWrapped("Generator not found: %s", productionGeneratorPath.c_str());
+	} else {
+		ImGui::TextWrapped("Generator: %s", productionGeneratorPath.c_str());
+	}
+	ImGui::TextWrapped(
+		"Use a real exported GGUF GAN generator checkpoint for production inference. "
+		"The lane is intentionally separated from proof mode so it does not affect training tooling.");
+}
+
+void ofApp::drawStatus() {
+	if (backendMode == GeneratorBackendMode::Proof) {
+		ImGui::TextWrapped("Lane: proof (deterministic, tiny, no quality guarantees)");
+		if (!backend->isAvailable()) {
+			ImGui::TextWrapped("Run ofxGgmlCore scripts\\setup-ggml.bat then rebuild this example");
+		}
+	} else {
+		ImGui::TextWrapped("Lane: production (GGUF checkpoint)");
+		const auto effectiveProductionPath = findProductionGeneratorPath();
+		if (effectiveProductionPath.empty()) {
+			ImGui::TextWrapped("Waiting for GGUF model. Put one in bin/data/models or use Browse / OFXGGML_GAN_GENERATOR.");
+		} else if (!ofFile::doesFileExist(effectiveProductionPath, false)) {
+			ImGui::TextWrapped("Configured path does not exist: %s", effectiveProductionPath.c_str());
+		} else if (!hasExtensionIgnoreCase(effectiveProductionPath, ".gguf")) {
+			ImGui::TextWrapped("Configured model is not .gguf: %s", effectiveProductionPath.c_str());
+		} else {
+			ImGui::TextWrapped("Production model: %s", effectiveProductionPath.c_str());
+		}
+		if (backend->isAvailable()) {
+			ImGui::TextWrapped("Backend runtime is available.");
+		}
+	}
 }
 
 void ofApp::createFixtureDataset() {
@@ -244,7 +426,9 @@ void ofApp::refreshFixtureTextures() {
 }
 
 void ofApp::rebuildRequest() {
-	request = ofxGgmlDiffusionUtils::makeGanImageRequest(prompt, findGeneratorPath());
+	request = ofxGgmlDiffusionUtils::makeGanImageRequest(
+		prompt,
+		backendMode == GeneratorBackendMode::Production ? findProductionGeneratorPath() : findGeneratorPath());
 	request.width = 512;
 	request.height = 512;
 	request.outputPath = getOutputPath();
@@ -280,6 +464,9 @@ void ofApp::applyResult(ofxGgmlDiffusionResult result) {
 }
 
 std::string ofApp::findGeneratorPath() const {
+	if (backendMode == GeneratorBackendMode::Production) {
+		return findProductionGeneratorPath();
+	}
 	if (generatorMode == GeneratorMode::Preset) {
 		return getPresetPath();
 	}
@@ -289,9 +476,33 @@ std::string ofApp::findGeneratorPath() const {
 	return "builtin:tiny-mlp";
 }
 
+std::string ofApp::findProductionGeneratorPath() const {
+	if (!productionGeneratorPath.empty()) {
+		return productionGeneratorPath;
+	}
+	const auto envGenerator = getEnvironmentVariable("OFXGGML_GAN_GENERATOR");
+	if (!envGenerator.empty() && ofFile::doesFileExist(envGenerator, false)) {
+		return envGenerator;
+	}
+	if (!envGenerator.empty()) {
+		return envGenerator;
+	}
+	const auto dataModelsPath = ofToDataPath("models", true);
+	const auto discoveredModel = findFirstGgufGenerator(dataModelsPath);
+	if (!discoveredModel.empty()) {
+		return discoveredModel;
+	}
+	return "";
+}
+
+void ofApp::refreshProductionPathBuffer() {
+	std::fill_n(productionGeneratorPathBuffer.data(), productionGeneratorPathBuffer.size(), '\0');
+	std::snprintf(productionGeneratorPathBuffer.data(), productionGeneratorPathBuffer.size(), "%s", productionGeneratorPath.c_str());
+}
+
 std::string ofApp::getPresetPath() const {
-	const char* envGenerator = std::getenv("OFXGGML_GAN_GENERATOR");
-	if (envGenerator && ofFile::doesFileExist(envGenerator, false)) {
+	const auto envGenerator = getEnvironmentVariable("OFXGGML_GAN_GENERATOR");
+	if (!envGenerator.empty() && hasExtensionIgnoreCase(envGenerator, ".ofxggmlgan") && ofFile::doesFileExist(envGenerator, false)) {
 		return envGenerator;
 	}
 	return ofToDataPath("models/tiny-mlp.ofxggmlgan", true);

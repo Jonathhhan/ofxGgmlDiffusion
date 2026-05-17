@@ -6,15 +6,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(ofxGgmlDiffusion_tests
 	test_main.cpp
+	../../ofxGgmlCore/src/model/ofxGgmlModel.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionAsyncRunner.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionImageGenerationBackend.cpp
+	../src/ofxGgmlDiffusion/ofxGgmlDiffusionGgufGanBackend.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanBackend.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionTinyGanTraining.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionNativeBackend.cpp
 	../src/ofxGgmlDiffusion/ofxGgmlDiffusionUtils.cpp)
 
 target_include_directories(ofxGgmlDiffusion_tests PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/../src)
+	${CMAKE_CURRENT_SOURCE_DIR}/../src
+	${CMAKE_CURRENT_SOURCE_DIR}/../../ofxGgmlCore/src)
 
 option(OFXGGMLDIFFUSION_BUILD_NATIVE_SMOKE "Build the optional stable-diffusion.cpp native bridge smoke test." OFF)
 set(OFXGGMLDIFFUSION_STABLE_DIFFUSION_INCLUDE_DIR "" CACHE PATH "Path to generated stable-diffusion.cpp headers.")

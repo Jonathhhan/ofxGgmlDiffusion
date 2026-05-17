@@ -69,8 +69,9 @@ starting generation. Run it before a heavy model smoke.
 
 `ofxGgmlDiffusionNativeBackend` is the first bridge to the generated
 `stable-diffusion.cpp` runtime. It compiles as a clear unavailable stub until
-the native runtime is generated and the app build defines
-`OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`. It implements the shared
+the native runtime is generated. The build script updates `addon_config.mk`
+automatically so the app build enables `OFXGGMLDIFFUSION_WITH_STABLE_DIFFUSION`
+when `stable-diffusion.cpp` is ready. It implements the shared
 `ofxGgmlDiffusionImageGenerationBackend` interface and can be constructed with
 `ofxGgmlMakeNativeDiffusionImageGenerationBackend()`, so examples and future
 pipeline helpers can choose between diffusion, GAN, and external image backends
