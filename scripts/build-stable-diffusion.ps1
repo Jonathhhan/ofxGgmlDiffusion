@@ -542,7 +542,9 @@ Invoke-Checked "cmake install stable-diffusion.cpp" "cmake" @(
 
 $addonConfigPath = Join-Path $addonRoot "addon_config.mk"
 $addonConfig = New-Object System.Collections.Generic.List[string]
-$addonConfig.AddRange((Get-Content -LiteralPath $addonConfigPath))
+foreach ($line in (Get-Content -LiteralPath $addonConfigPath)) {
+	$addonConfig.Add([string]$line)
+}
 Update-AddonConfigForStableDiffusionRuntime -Lines $addonConfig -Enable $true
 Set-Content -LiteralPath $addonConfigPath -Value $addonConfig -Encoding ASCII
 Write-Step "Updated addon_config.mk for stable-diffusion runtime linkage"

@@ -330,6 +330,47 @@ function Add-SemicolonNodeValue {
 	return $changed
 }
 
+function Add-SpaceNodeValue {
+	param(
+		[xml]$Doc,
+		[System.Xml.XmlNamespaceManager]$Namespace,
+		[string]$XPath,
+		[string]$Value,
+		[switch]$Apply
+	)
+
+	if ([string]::IsNullOrWhiteSpace($Value)) {
+		return $false
+	}
+	$nodes = @($Doc.SelectNodes($XPath, $Namespace))
+	$changed = $false
+	foreach ($node in $nodes) {
+		$parts = New-Object System.Collections.Generic.List[string]
+		foreach ($part in @($node.InnerText -split "\s+" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+			$parts.Add([string]$part)
+		}
+		if (!$parts.Contains($Value)) {
+			$changed = $true
+			if ($Apply) {
+				$parts.Add($Value)
+				$node.InnerText = ($parts.ToArray() -join " ")
+			}
+		}
+	}
+	return $changed
+}
+
+function Get-AddonCFlags {
+	param([string]$AddonRoot)
+
+	$flags = New-Object System.Collections.Generic.List[string]
+	$config = Get-AddonConfigValues -AddonRoot $AddonRoot
+	foreach ($flag in @($config["ADDON_CFLAGS"])) {
+		$flags.Add([string]$flag)
+	}
+	return @($flags | Where-Object { $_ -notmatch '^\s*$' })
+}
+
 function Get-AddonLibs {
 	param([string]$AddonRoot)
 
@@ -445,6 +486,7 @@ function Repair-DiffusionGeneratedProject {
 		$addons = @("ofxGgmlDiffusion") + $addons
 	}
 	$includeDirs = New-Object System.Collections.Generic.HashSet[string]
+	$compilerFlags = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
 	$dependencyReferences = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
 	$dependencyDirectories = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
 	foreach ($addon in $addons) {
@@ -457,6 +499,11 @@ function Repair-DiffusionGeneratedProject {
 			$normalizedRelativeInclude = $relativeInclude -replace '/', '\'
 			if (-not $includeDirs.Contains($normalizedRelativeInclude)) {
 				$includeDirs.Add($normalizedRelativeInclude) | Out-Null
+			}
+		}
+		foreach ($flag in Get-AddonCFlags -AddonRoot $addonRoot) {
+			if (![string]::IsNullOrWhiteSpace($flag)) {
+				$compilerFlags.Add($flag) | Out-Null
 			}
 		}
 		foreach ($library in Get-AddonLibs -AddonRoot $addonRoot) {
@@ -481,6 +528,12 @@ function Repair-DiffusionGeneratedProject {
 			}
 		}
 		$node.InnerText = $parts -join ";"
+	}
+
+	foreach ($flag in @($compilerFlags | Sort-Object)) {
+		if (Add-SpaceNodeValue -Doc $doc -Namespace $namespace -XPath "//msb:ClCompile/msb:AdditionalOptions" -Value $flag -Apply) {
+			$changed = $true
+		}
 	}
 
 	if ($dependencyReferences.Count -gt 0) {
