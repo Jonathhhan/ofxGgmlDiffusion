@@ -40,6 +40,56 @@ bool isNativeDiffusionBackendEnabled() {
 std::string getNativeBackendSetupHint() {
 	return "stable-diffusion.cpp is opt-in. Run ..\\scripts\\build-stable-diffusion.bat, then regenerate this example project.";
 }
+
+bool isDiffusionModelExtension(const std::string& extension) {
+	const auto lowerExtension = ofToLower(extension);
+	return lowerExtension == "safetensors" ||
+		lowerExtension == "gguf" ||
+		lowerExtension == "ckpt";
+}
+
+bool isLikelyAuxiliaryModel(const std::string& fileName) {
+	const auto lowerName = ofToLower(fileName);
+	const std::vector<std::string> auxiliaryMarkers = {
+		"clip",
+		"control",
+		"esrgan",
+		"lora",
+		"photomaker",
+		"taesd",
+		"text_encoder",
+		"upscaler",
+		"vae"
+	};
+	for (const auto& marker : auxiliaryMarkers) {
+		if (lowerName.find(marker) != std::string::npos) {
+			return true;
+		}
+	}
+	return false;
+}
+
+std::string findFirstDiffusionModelInDirectory(const std::string& directoryPath) {
+	ofDirectory directory(directoryPath);
+	if (!directory.exists()) {
+		return "";
+	}
+	directory.listDir();
+	directory.sort();
+	for (const auto& file : directory.getFiles()) {
+		if (!file.isFile()) {
+			continue;
+		}
+		if (!isDiffusionModelExtension(file.getExtension())) {
+			continue;
+		}
+		if (isLikelyAuxiliaryModel(file.getFileName())) {
+			continue;
+		}
+		return file.getAbsolutePath();
+	}
+	return "";
+}
 }
 
 void ofApp::setup() {
@@ -60,9 +110,9 @@ void ofApp::setup() {
 		detail = getNativeBackendSetupHint();
 		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
 	} else if (settings.modelPath.empty()) {
-		detail = "Set OFXGGML_DIFFUSION_MODEL or place a model at bin/data/models/model.safetensors";
+		detail = "Set OFXGGML_DIFFUSION_MODEL or place a .safetensors, .gguf, or .ckpt model in bin/data/models";
 	} else {
-		detail = "Press R to generate";
+		detail = "Press R to generate with " + settings.modelPath;
 	}
 	ofLogNotice("ofxGgmlDiffusionPromptExample") << status;
 	ofLogNotice("ofxGgmlDiffusionPromptExample") << detail;
@@ -147,7 +197,7 @@ std::string ofApp::findModelPath() const {
 			return candidate;
 		}
 	}
-	return "";
+	return findFirstDiffusionModelInDirectory(ofToDataPath("models", true));
 }
 
 std::string ofApp::findPhotoMakerPath() const {

@@ -8,11 +8,13 @@ The native runtime is opt-in. Build it first:
 ..\scripts\build-stable-diffusion.bat
 ```
 
-After build, regenerate the example project (projectGenerator) and rebuild so the
-addon config macro is picked up.
+After build, run `..\scripts\build-diffusion-example.bat` to repair and rebuild
+the generated project so the addon config macro is picked up.
 
 Then point the example at a local model with `OFXGGML_DIFFUSION_MODEL`, or place
-one at `bin/data/models/model.safetensors`.
+one at `bin/data/models/model.safetensors`. If no explicit path is configured,
+the example also scans `bin/data/models` for the first likely `.safetensors`,
+`.gguf`, or `.ckpt` base checkpoint.
 
 For PhotoMaker, set `OFXGGML_PHOTOMAKER_MODEL` and
 `OFXGGML_PHOTOMAKER_REFS` before launch. `OFXGGML_PHOTOMAKER_REFS` is a
