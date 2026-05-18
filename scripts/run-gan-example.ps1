@@ -84,7 +84,7 @@ if (![string]::IsNullOrWhiteSpace($Generator)) {
 	$env:OFXGGML_GAN_GENERATOR = $Generator
 	Write-Step "Using GAN generator: $Generator"
 } else {
-	Write-Warning "No GAN generator was provided. Set OFXGGML_GAN_GENERATOR or place one at ofxGgmlDiffusionGanExample\bin\data\models\generator.gguf."
+	Write-Warning "No GAN generator was provided. Set OFXGGML_GAN_GENERATOR, place a supported GGUF at ofxGgmlDiffusionGanExample\bin\data\models\generator.gguf, or run scripts\download-pixel-gan-model.bat."
 }
 
 if ($DryRun) {

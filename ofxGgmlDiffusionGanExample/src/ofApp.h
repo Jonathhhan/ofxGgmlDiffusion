@@ -43,6 +43,7 @@ private:
 	void rebuildBackend();
 	void runGeneration();
 	void drawGui();
+	void drawSeedControls();
 	void createFixtureDataset();
 	void drawProofControls();
 	void drawProductionControls();
@@ -60,6 +61,7 @@ private:
 	std::string getOutputPath() const;
 	void rebuildRequest();
 	void refreshProductionPathBuffer();
+	void randomizeSeed();
 	void applyResult(ofxGgmlDiffusionResult result);
 
 	ofxImGui::Gui gui;
@@ -78,7 +80,9 @@ private:
 	int epochs = 2;
 	int batchSize = 4;
 	int dryRunBatchesPerEpoch = 3;
+	int seed = 1234;
 	float learningRate = 0.001f;
+	bool lockSeed = false;
 	ofxGgmlDiffusionTinyGanTrainingResult trainingPlan;
 	std::array<char, 512> promptBuffer{};
 	std::string prompt;

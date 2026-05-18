@@ -25,21 +25,34 @@ seed/shape/scale parameters used by this proof path.
 - trained quality benchmarking
 - real production-GAN inference
 
-`ofxGgmlDiffusionGgufGanBackend` is the explicit production lane marker for
+`ofxGgmlDiffusionGgufGanBackend` is the explicit production lane for supported
 exported `.gguf` checkpoints and is intentionally split from the proof workflow so
-training tools and presets cannot mask production path requirements.
-
-At this step, the lane validates GGUF checkpoint loading prerequisites and keeps the
-request/run contract clear; the backend runtime call is intentionally isolated so a native
-generator runtime can be dropped in directly next.
+training tools and presets cannot mask production path requirements. The first
+supported external checkpoint is the small
+[`gguf-org/pixel`](https://huggingface.co/gguf-org/pixel) Pixel/DCGAN model.
+Other `.gguf` files are rejected until their architecture has a matching loader.
 
 Inside the example, use the ImGui panel to:
 
 - edit the prompt,
+- randomize each run by default or lock a seed for repeatable output,
 - switch backend lane (proof/production),
 - in Proof: create fixture images, write a preview preset, and pick built-in/preset
   generator mode,
 - in Production: browse for a `.gguf` generator checkpoint and run inference.
+
+When `OFXGGML_GAN_GENERATOR` points at a `.gguf` file, the example starts in
+Production automatically. When it points at a `.ofxggmlgan` preset, the example
+stays in Proof and selects the preset lane. If Production is selected without a
+GGUF generator and a proof preset exists, Run falls back to that proof preset
+instead of stopping at a missing-model warning.
+
+To try the public Pixel/DCGAN checkpoint without manually downloading model files:
+
+```powershell
+..\scripts\download-pixel-gan-model.bat
+..\scripts\run-gan-example.bat -Build -Generator bin\data\models\pixel-model-f16.gguf
+```
 
 The right side shows the generated image, fixture thumbnails and dry-run loss curve
 in proof mode. The script path is still useful for repeatable setup and dry-run

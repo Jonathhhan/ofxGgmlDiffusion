@@ -1,6 +1,7 @@
 #include "ofApp.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -60,6 +61,13 @@ namespace {
 			[](char lhs, char rhs) { return std::tolower(static_cast<unsigned char>(lhs)) == std::tolower(static_cast<unsigned char>(rhs)); });
 	}
 
+	std::string toLowerCopy(std::string value) {
+		std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+			return static_cast<char>(std::tolower(ch));
+		});
+		return value;
+	}
+
 	std::string describePathOrNone(const std::string& path) {
 		return path.empty() ? "none" : ofFilePath::getFileName(path);
 	}
@@ -73,9 +81,25 @@ namespace {
 			return "";
 		}
 		models.listDir();
+		const std::array<std::string, 2> preferredNames = {
+			"pixel-model-f16.gguf",
+			"generator.gguf"
+		};
+		for (const auto& preferredName : preferredNames) {
+			for (const auto& file : models.getFiles()) {
+				const auto filename = file.getFileName();
+				if (toLowerCopy(filename) == preferredName) {
+					return file.getAbsolutePath();
+				}
+			}
+		}
 		for (const auto& file : models.getFiles()) {
 			const auto filename = file.getFileName();
-			if (hasExtensionIgnoreCase(filename, ".gguf")) {
+			const auto lowerFilename = toLowerCopy(filename);
+			if (hasExtensionIgnoreCase(filename, ".gguf") &&
+				(lowerFilename.find("gan") != std::string::npos ||
+				 lowerFilename.find("generator") != std::string::npos ||
+				 lowerFilename.find("pixel") != std::string::npos)) {
 				return file.getAbsolutePath();
 			}
 		}
@@ -89,11 +113,23 @@ void ofApp::setup() {
 
 	prompt = "small monochrome icon set for an openFrameworks tool";
 	std::snprintf(promptBuffer.data(), promptBuffer.size(), "%s", prompt.c_str());
+	randomizeSeed();
 
 	backendMode = GeneratorBackendMode::Proof;
-	backendModeIndex = static_cast<int>(backendMode);
-	rebuildBackend();
 	productionGeneratorPath = findProductionGeneratorPath();
+	if (!productionGeneratorPath.empty() &&
+		hasExtensionIgnoreCase(productionGeneratorPath, ".gguf")) {
+		backendMode = GeneratorBackendMode::Production;
+	}
+	backendModeIndex = static_cast<int>(backendMode);
+	const auto envGenerator = getEnvironmentVariable("OFXGGML_GAN_GENERATOR");
+	if (backendMode == GeneratorBackendMode::Proof &&
+		hasExtensionIgnoreCase(envGenerator, ".ofxggmlgan") &&
+		ofFile::doesFileExist(envGenerator, false)) {
+		generatorMode = GeneratorMode::Preset;
+	}
+	generatorModeIndex = static_cast<int>(generatorMode);
+	rebuildBackend();
 	refreshProductionPathBuffer();
 	rebuildRequest();
 	updateTrainingPlan();
@@ -132,13 +168,44 @@ void ofApp::keyPressed(int key) {
 }
 
 void ofApp::runGeneration() {
+	if (!lockSeed) {
+		randomizeSeed();
+	}
 	if (backendMode == GeneratorBackendMode::Production) {
+		auto useProofFallback = [&]() {
+			std::string fallbackPath;
+			if (ofFile::doesFileExist(getPreviewPresetPath(), false)) {
+				generatorMode = GeneratorMode::PreviewPreset;
+				fallbackPath = getPreviewPresetPath();
+			} else if (ofFile::doesFileExist(getPresetPath(), false)) {
+				generatorMode = GeneratorMode::Preset;
+				fallbackPath = getPresetPath();
+			}
+			if (fallbackPath.empty()) {
+				return false;
+			}
+
+			backendMode = GeneratorBackendMode::Proof;
+			backendModeIndex = static_cast<int>(backendMode);
+			generatorModeIndex = static_cast<int>(generatorMode);
+			rebuildBackend();
+			rebuildRequest();
+			status = "using proof preset";
+			detail = "No GGUF generator model was found; using proof preset " +
+				ofFilePath::getFileName(fallbackPath) + ".";
+			ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
+			return true;
+		};
+
 		productionGeneratorPath = findProductionGeneratorPath();
 		settings.modelPath = productionGeneratorPath;
 		request.gan.generatorPath = productionGeneratorPath;
 		if (settings.modelPath.empty()) {
+			if (useProofFallback()) {
+				return runGeneration();
+			}
 			status = "backend unavailable";
-			detail = "Production lane requires a GGUF generator model. Place one in bin/data/models or use Browse / set OFXGGML_GAN_GENERATOR.";
+			detail = "Production lane requires a supported GGUF generator model. Place one in bin/data/models, use Browse, set OFXGGML_GAN_GENERATOR, run scripts\\download-pixel-gan-model.bat, or switch to Proof.";
 			ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
 			return;
 		}
@@ -149,8 +216,11 @@ void ofApp::runGeneration() {
 			return;
 		}
 		if (!hasExtensionIgnoreCase(settings.modelPath, ".gguf")) {
+			if (hasExtensionIgnoreCase(settings.modelPath, ".ofxggmlgan") && useProofFallback()) {
+				return runGeneration();
+			}
 			status = "backend unavailable";
-			detail = "Production lane requires a .gguf generator file.";
+			detail = "Production lane requires a .gguf generator file. Use .ofxggmlgan presets in Proof.";
 			ofLogWarning("ofxGgmlDiffusionGanExample") << detail;
 			return;
 		}
@@ -188,6 +258,8 @@ void ofApp::drawGui() {
 		rebuildRequest();
 	}
 
+	drawSeedControls();
+
 	if (ImGui::Combo("Backend lane", &backendModeIndex, backendModeNames, 2)) {
 		backendMode = static_cast<GeneratorBackendMode>(backendModeIndex);
 		rebuildBackend();
@@ -221,6 +293,24 @@ void ofApp::drawGui() {
 	ImGui::TextWrapped("Generator path: %s", request.gan.generatorPath.c_str());
 
 	ImGui::End();
+}
+
+void ofApp::drawSeedControls() {
+	ImGui::Separator();
+	if (ImGui::Checkbox("Lock seed", &lockSeed)) {
+		rebuildRequest();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("New seed")) {
+		randomizeSeed();
+		rebuildRequest();
+	}
+	if (ImGui::InputInt("Seed", &seed)) {
+		seed = std::max(1, seed);
+		lockSeed = true;
+		rebuildRequest();
+	}
+	ImGui::TextWrapped("%s", lockSeed ? "Seed is locked." : "Run picks a new seed.");
 }
 
 void ofApp::drawProofControls() {
@@ -300,6 +390,7 @@ void ofApp::drawProductionControls() {
 	}
 	ImGui::TextWrapped(
 		"Use a real exported GGUF GAN generator checkpoint for production inference. "
+		"This build currently supports the gguf-org/pixel Pixel/DCGAN checkpoint. "
 		"The lane is intentionally separated from proof mode so it does not affect training tooling.");
 }
 
@@ -313,7 +404,7 @@ void ofApp::drawStatus() {
 		ImGui::TextWrapped("Lane: production (GGUF checkpoint)");
 		const auto effectiveProductionPath = findProductionGeneratorPath();
 		if (effectiveProductionPath.empty()) {
-			ImGui::TextWrapped("Waiting for GGUF model. Put one in bin/data/models or use Browse / OFXGGML_GAN_GENERATOR.");
+			ImGui::TextWrapped("Waiting for a supported GGUF model. Put pixel-model-f16.gguf in bin/data/models or use Browse / OFXGGML_GAN_GENERATOR.");
 		} else if (!ofFile::doesFileExist(effectiveProductionPath, false)) {
 			ImGui::TextWrapped("Configured path does not exist: %s", effectiveProductionPath.c_str());
 		} else if (!hasExtensionIgnoreCase(effectiveProductionPath, ".gguf")) {
@@ -432,9 +523,16 @@ void ofApp::rebuildRequest() {
 	request.width = 512;
 	request.height = 512;
 	request.outputPath = getOutputPath();
-	request.seed = 1234;
-	request.gan.latentSize = 512;
+	request.seed = seed;
+	request.gan.latentSize = backendMode == GeneratorBackendMode::Production ? 100 : 512;
 	request.gan.truncation = 0.85f;
+}
+
+void ofApp::randomizeSeed() {
+	seed = static_cast<int>(ofRandom(1.0f, 2147483000.0f));
+	if (seed <= 0) {
+		seed = 1;
+	}
 }
 
 void ofApp::applyResult(ofxGgmlDiffusionResult result) {
@@ -459,7 +557,7 @@ void ofApp::applyResult(ofxGgmlDiffusionResult result) {
 	}
 
 	status = "complete";
-	detail = "Saved " + result.outputPath;
+	detail = "Saved " + result.outputPath + " (seed " + ofToString(result.seed) + ")";
 	ofLogNotice("ofxGgmlDiffusionGanExample") << detail;
 }
 
@@ -481,10 +579,12 @@ std::string ofApp::findProductionGeneratorPath() const {
 		return productionGeneratorPath;
 	}
 	const auto envGenerator = getEnvironmentVariable("OFXGGML_GAN_GENERATOR");
-	if (!envGenerator.empty() && ofFile::doesFileExist(envGenerator, false)) {
+	if (!envGenerator.empty() &&
+		hasExtensionIgnoreCase(envGenerator, ".gguf") &&
+		ofFile::doesFileExist(envGenerator, false)) {
 		return envGenerator;
 	}
-	if (!envGenerator.empty()) {
+	if (!envGenerator.empty() && hasExtensionIgnoreCase(envGenerator, ".gguf")) {
 		return envGenerator;
 	}
 	const auto dataModelsPath = ofToDataPath("models", true);

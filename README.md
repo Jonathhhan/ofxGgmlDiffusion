@@ -209,9 +209,11 @@ The example runs generation on a worker thread; press `C` to cancel the pending
 result.
 
 `ofxGgmlDiffusionGanExample` is a root-level GAN request example. Generate it
-with the same addons, set `OFXGGML_GAN_GENERATOR` or place a generator at
-`bin/data/models/generator.gguf`, then press `R` to validate and run the request.
-It reports a clear unavailable-backend result until a real GAN runtime is wired.
+with the same addons, set `OFXGGML_GAN_GENERATOR` or place a supported generator
+at `bin/data/models/generator.gguf`, then press `R` to validate and run the
+request. The first supported public GGUF GAN target is
+[`gguf-org/pixel`](https://huggingface.co/gguf-org/pixel), available through
+`scripts\download-pixel-gan-model.bat`.
 
 ```powershell
 scripts\run-diffusion-example.bat -DryRun
@@ -220,9 +222,11 @@ scripts\create-tiny-gan-preset.bat
 scripts\create-tiny-gan-fixtures.bat -OutputPath ofxGgmlDiffusionGanExample\bin\data\datasets\tiny-fixtures -Count 8
 scripts\train-tiny-gan.bat -DryRun -Dataset C:\path\to\images -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-trained.ofxggmlgan -Epochs 2 -DryRunBatchesPerEpoch 3
 scripts\train-tiny-gan.bat -DryRun -Dataset ofxGgmlDiffusionGanExample\bin\data\datasets\tiny-fixtures -OutputPreset ofxGgmlDiffusionGanExample\bin\data\models\tiny-preview-trained.ofxggmlgan -WritePreviewPreset -Force
+scripts\download-pixel-gan-model.bat
 scripts\run-gan-example.bat -DryRun
 scripts\run-gan-example.bat -DryRun -PreviewPreset -ForcePreviewPreset
 scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\data\models\tiny-mlp.ofxggmlgan
+scripts\run-gan-example.bat -Build -Generator ofxGgmlDiffusionGanExample\bin\data\models\pixel-model-f16.gguf
 ```
 
 ## Dependencies

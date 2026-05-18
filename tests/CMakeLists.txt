@@ -25,6 +25,16 @@ set(OFXGGMLDIFFUSION_STABLE_DIFFUSION_LIBRARY "" CACHE FILEPATH "Path to generat
 set(OFXGGMLDIFFUSION_GGML_INCLUDE_DIR "" CACHE PATH "Path to generated ggml headers from ofxGgmlCore.")
 set(OFXGGMLDIFFUSION_EXTRA_LIBRARIES "" CACHE STRING "Extra libraries required by stable-diffusion.cpp.")
 
+if (OFXGGMLDIFFUSION_GGML_INCLUDE_DIR)
+	target_include_directories(ofxGgmlDiffusion_tests PRIVATE
+		${OFXGGMLDIFFUSION_GGML_INCLUDE_DIR})
+endif()
+
+if (OFXGGMLDIFFUSION_EXTRA_LIBRARIES)
+	target_link_libraries(ofxGgmlDiffusion_tests PRIVATE
+		${OFXGGMLDIFFUSION_EXTRA_LIBRARIES})
+endif()
+
 if (OFXGGMLDIFFUSION_BUILD_NATIVE_SMOKE)
 	if (NOT OFXGGMLDIFFUSION_STABLE_DIFFUSION_INCLUDE_DIR)
 		message(FATAL_ERROR "OFXGGMLDIFFUSION_STABLE_DIFFUSION_INCLUDE_DIR is required for the native smoke test.")

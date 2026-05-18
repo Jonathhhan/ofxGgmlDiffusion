@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -324,6 +325,35 @@ int main() {
 		return 1;
 	}
 	std::remove("fake-generator.gguf");
+
+	if (const char * pixelGanModel = std::getenv("OFXGGML_PIXEL_GAN_MODEL")) {
+		ofxGgmlDiffusionGgufGanBackend pixelGan;
+		ofxGgmlDiffusionContextSettings pixelSettings;
+		pixelSettings.modelPath = pixelGanModel;
+		const auto pixelSetup = pixelGan.setup(pixelSettings);
+		if (!pixelSetup || !pixelGan.isLoaded()) {
+			std::cerr << "Pixel/DCGAN GGUF backend setup failed: " << pixelSetup.error << "\n";
+			return 1;
+		}
+		auto pixelRequest = ganRequest;
+		pixelRequest.width = 64;
+		pixelRequest.height = 64;
+		pixelRequest.seed = 1234;
+		pixelRequest.gan.generatorPath = pixelGanModel;
+		pixelRequest.gan.latentSize = 100;
+		pixelRequest.gan.truncation = 0.85f;
+		const auto pixelResult = pixelGan.generate(pixelRequest);
+		if (!pixelResult ||
+			pixelResult.images.empty() ||
+			!pixelResult.images.front().isAllocated() ||
+			pixelResult.images.front().width != 64 ||
+			pixelResult.images.front().height != 64 ||
+			pixelResult.images.front().channels != 4) {
+			std::cerr << "Pixel/DCGAN GGUF backend did not generate RGBA pixels: "
+					  << pixelResult.error << "\n";
+			return 1;
+		}
+	}
 
 	const std::filesystem::path datasetPath = "tiny-gan-dataset-test";
 	std::filesystem::remove_all(datasetPath);
