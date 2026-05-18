@@ -353,6 +353,24 @@ int main() {
 					  << pixelResult.error << "\n";
 			return 1;
 		}
+		auto differentSeedRequest = pixelRequest;
+		differentSeedRequest.seed = 5678;
+		const auto differentSeedResult = pixelGan.generate(differentSeedRequest);
+		if (!differentSeedResult ||
+			differentSeedResult.images.empty() ||
+			differentSeedResult.images.front().pixels == pixelResult.images.front().pixels) {
+			std::cerr << "Pixel/DCGAN GGUF backend ignored seed changes\n";
+			return 1;
+		}
+		auto differentPromptRequest = pixelRequest;
+		differentPromptRequest.prompt = "a different synthetic icon sample";
+		const auto differentPromptResult = pixelGan.generate(differentPromptRequest);
+		if (!differentPromptResult ||
+			differentPromptResult.images.empty() ||
+			differentPromptResult.images.front().pixels == pixelResult.images.front().pixels) {
+			std::cerr << "Pixel/DCGAN GGUF backend ignored prompt changes\n";
+			return 1;
+		}
 	}
 
 	const std::filesystem::path datasetPath = "tiny-gan-dataset-test";

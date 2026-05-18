@@ -348,11 +348,13 @@ namespace {
 	ofxGgmlDiffusionImage makePixelDcganImage(
 		const ofxGgmlDiffusionGgufGanPixelDcganModel& model,
 		const ofxGgmlDiffusionRequest& request) {
+		const auto cleanPrompt = ofxGgmlDiffusionUtils::cleanPrompt(request.prompt);
 		std::uint64_t rngState = hashString(request.gan.generatorPath) ^
 			mix64(static_cast<std::uint64_t>(request.seed));
-		if (!request.prompt.empty()) {
-			rngState ^= hashString(ofxGgmlDiffusionUtils::cleanPrompt(request.prompt));
+		if (!cleanPrompt.empty()) {
+			rngState ^= hashString(cleanPrompt);
 		}
+		const std::uint64_t styleKey = rngState ^ 0x6d4f2b3a5c8197e1ULL;
 
 		std::array<float, pixelLatentSize> latent{};
 		const float truncation = request.gan.truncation > 0.0f ? request.gan.truncation : 1.0f;
@@ -443,10 +445,23 @@ namespace {
 			static_cast<std::size_t>(image.height) *
 			static_cast<std::size_t>(image.channels));
 
+		const int shiftX = static_cast<int>(mix64(styleKey ^ 0x11ULL) % 7ULL) - 3;
+		const int shiftY = static_cast<int>(mix64(styleKey ^ 0x23ULL) % 7ULL) - 3;
+		std::array<float, 3> colorGain{};
+		std::array<float, 3> colorOffset{};
+		for (int channel = 0; channel < 3; ++channel) {
+			const auto gainBits = mix64(styleKey ^ (0x101ULL + static_cast<std::uint64_t>(channel)));
+			const auto offsetBits = mix64(styleKey ^ (0x201ULL + static_cast<std::uint64_t>(channel)));
+			colorGain[channel] = 0.86f + static_cast<float>(gainBits & 1023ULL) * (0.28f / 1023.0f);
+			colorOffset[channel] = -0.035f + static_cast<float>(offsetBits & 1023ULL) * (0.07f / 1023.0f);
+		}
+
 		for (int y = 0; y < image.height; ++y) {
-			const int sourceY = std::clamp(y * pixelOutputSize / image.height, 0, pixelOutputSize - 1);
+			const int baseSourceY = std::clamp(y * pixelOutputSize / image.height, 0, pixelOutputSize - 1);
+			const int sourceY = (baseSourceY + shiftY + pixelOutputSize) % pixelOutputSize;
 			for (int x = 0; x < image.width; ++x) {
-				const int sourceX = std::clamp(x * pixelOutputSize / image.width, 0, pixelOutputSize - 1);
+				const int baseSourceX = std::clamp(x * pixelOutputSize / image.width, 0, pixelOutputSize - 1);
+				const int sourceX = (baseSourceX + shiftX + pixelOutputSize) % pixelOutputSize;
 				const auto outputBase =
 					(static_cast<std::size_t>(y) * static_cast<std::size_t>(image.width) +
 					 static_cast<std::size_t>(x)) *
@@ -458,7 +473,17 @@ namespace {
 						channel,
 						sourceY,
 						sourceX);
-					const float value = (std::tanh(stage3[sourceIndex]) + 1.0f) * 0.5f;
+					float value = (std::tanh(stage3[sourceIndex]) + 1.0f) * 0.5f;
+					if (channel < 3) {
+						const auto noiseBits = mix64(
+							styleKey ^
+							(static_cast<std::uint64_t>(x) * 0x9e3779b185ebca87ULL) ^
+							(static_cast<std::uint64_t>(y) * 0xc2b2ae3d27d4eb4fULL) ^
+							static_cast<std::uint64_t>(channel));
+						const float noise =
+							(static_cast<float>((noiseBits >> 40) & 65535ULL) / 65535.0f - 0.5f) * 0.045f;
+						value = value * colorGain[channel] + colorOffset[channel] + noise;
+					}
 					image.pixels[outputBase + static_cast<std::size_t>(channel)] =
 						static_cast<std::uint8_t>(std::clamp(value, 0.0f, 1.0f) * 255.0f);
 				}

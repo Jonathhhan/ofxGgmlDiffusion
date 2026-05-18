@@ -159,6 +159,7 @@ void ofApp::rebuildBackend() {
 }
 
 void ofApp::update() {
+	advanceAnimation();
 }
 
 void ofApp::keyPressed(int key) {
@@ -311,6 +312,21 @@ void ofApp::drawSeedControls() {
 		rebuildRequest();
 	}
 	ImGui::TextWrapped("%s", lockSeed ? "Seed is locked." : "Run picks a new seed.");
+
+	ImGui::Separator();
+	if (ImGui::Checkbox("Animate", &animate)) {
+		lockSeed = true;
+		lastAnimationTime = 0.0;
+		rebuildRequest();
+	}
+	ImGui::SameLine();
+	ImGui::TextWrapped("Seed walk");
+	ImGui::SliderFloat("Animation FPS", &animationFps, 0.5f, 12.0f, "%.1f");
+	if (ImGui::InputInt("Seed step", &animationSeedStep)) {
+		if (animationSeedStep == 0) {
+			animationSeedStep = 1;
+		}
+	}
 }
 
 void ofApp::drawProofControls() {
@@ -391,6 +407,7 @@ void ofApp::drawProductionControls() {
 	ImGui::TextWrapped(
 		"Use a real exported GGUF GAN generator checkpoint for production inference. "
 		"This build currently supports the gguf-org/pixel Pixel/DCGAN checkpoint. "
+		"Pixel/DCGAN is unconditional, so prompt text is folded into deterministic sample variation rather than semantic text guidance. "
 		"The lane is intentionally separated from proof mode so it does not affect training tooling.");
 }
 
@@ -533,6 +550,29 @@ void ofApp::randomizeSeed() {
 	if (seed <= 0) {
 		seed = 1;
 	}
+}
+
+void ofApp::advanceAnimation() {
+	if (!animate) {
+		return;
+	}
+	const double now = ofGetElapsedTimef();
+	const double interval = 1.0 / std::max(0.5f, animationFps);
+	if (lastAnimationTime > 0.0 && now - lastAnimationTime < interval) {
+		return;
+	}
+	lastAnimationTime = now;
+	lockSeed = true;
+	const long long nextSeed = static_cast<long long>(seed) + static_cast<long long>(animationSeedStep);
+	if (nextSeed <= 0) {
+		seed = 1;
+	} else if (nextSeed > 2147483000LL) {
+		seed = 1 + static_cast<int>(nextSeed % 2147483000LL);
+	} else {
+		seed = static_cast<int>(nextSeed);
+	}
+	rebuildRequest();
+	runGeneration();
 }
 
 void ofApp::applyResult(ofxGgmlDiffusionResult result) {

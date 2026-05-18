@@ -31,11 +31,14 @@ training tools and presets cannot mask production path requirements. The first
 supported external checkpoint is the small
 [`gguf-org/pixel`](https://huggingface.co/gguf-org/pixel) Pixel/DCGAN model.
 Other `.gguf` files are rejected until their architecture has a matching loader.
+Pixel/DCGAN is unconditional, so prompt text is used as deterministic sample
+variation rather than semantic text guidance.
 
 Inside the example, use the ImGui panel to:
 
 - edit the prompt,
 - randomize each run by default or lock a seed for repeatable output,
+- enable animation, which walks the seed at the selected FPS,
 - switch backend lane (proof/production),
 - in Proof: create fixture images, write a preview preset, and pick built-in/preset
   generator mode,

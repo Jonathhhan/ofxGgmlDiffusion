@@ -62,6 +62,7 @@ private:
 	void rebuildRequest();
 	void refreshProductionPathBuffer();
 	void randomizeSeed();
+	void advanceAnimation();
 	void applyResult(ofxGgmlDiffusionResult result);
 
 	ofxImGui::Gui gui;
@@ -81,8 +82,12 @@ private:
 	int batchSize = 4;
 	int dryRunBatchesPerEpoch = 3;
 	int seed = 1234;
+	int animationSeedStep = 1;
 	float learningRate = 0.001f;
+	float animationFps = 4.0f;
 	bool lockSeed = false;
+	bool animate = false;
+	double lastAnimationTime = 0.0;
 	ofxGgmlDiffusionTinyGanTrainingResult trainingPlan;
 	std::array<char, 512> promptBuffer{};
 	std::string prompt;
