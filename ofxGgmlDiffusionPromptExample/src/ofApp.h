@@ -16,6 +16,10 @@
 #error "Cannot find ofxImGui.h. Ensure the ofxImGui addon is linked correctly."
 #endif
 
+#include <array>
+#include <cstdint>
+#include <string>
+
 class ofApp : public ofBaseApp {
 public:
 	void setup() override;
@@ -25,6 +29,11 @@ public:
 
 private:
 	void runGeneration();
+	void drawPromptControls();
+	void drawSettingsControls();
+	void drawModelControls();
+	void syncRequestFromGui();
+	void syncGuiFromRequest();
 	std::string findModelPath() const;
 	std::string findPhotoMakerPath() const;
 	bool loadPhotoMakerReferences();
@@ -36,6 +45,14 @@ private:
 	ofxGgmlDiffusionRequest request;
 	ofxImGui::Gui gui;
 	ofTexture texture;
+	std::array<char, 2048> promptBuffer{};
+	std::array<char, 2048> negativePromptBuffer{};
+	std::array<char, 1024> modelPathBuffer{};
+	int schedulerIndex = 0;
+	int seed = -1;
+	float cfgScale = 7.0f;
+	bool autoCfgScale = true;
+	bool randomSeed = true;
 	std::string status;
 	std::string detail;
 };

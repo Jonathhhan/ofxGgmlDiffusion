@@ -10,12 +10,22 @@
 #include "imgui.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
+#include <limits>
 #include <sstream>
 #include <utility>
 #include <vector>
 
 namespace {
+const char* schedulerNames[] = {
+	"Auto",
+	"Default",
+	"LCM",
+	"Turbo",
+	"Flow match"
+};
+
 std::string getEnvironmentVariable(const std::string& name) {
 #if defined(_MSC_VER)
 	char* value = nullptr;
@@ -39,6 +49,32 @@ bool isNativeDiffusionBackendEnabled() {
 
 std::string getNativeBackendSetupHint() {
 	return "stable-diffusion.cpp is opt-in. Run ..\\scripts\\build-stable-diffusion.bat, then regenerate this example project.";
+}
+
+int schedulerToIndex(ofxGgmlDiffusionScheduler scheduler) {
+	return static_cast<int>(scheduler);
+}
+
+ofxGgmlDiffusionScheduler indexToScheduler(int index) {
+	if (index < 0 || index > static_cast<int>(ofxGgmlDiffusionScheduler::FlowMatch)) {
+		return ofxGgmlDiffusionScheduler::Auto;
+	}
+	return static_cast<ofxGgmlDiffusionScheduler>(index);
+}
+
+int clampToMultipleOf64(int value) {
+	const int clamped = std::clamp(value, 64, 2048);
+	return std::max(64, (clamped / 64) * 64);
+}
+
+void writeBuffer(std::array<char, 2048>& buffer, const std::string& value) {
+	std::fill(buffer.begin(), buffer.end(), '\0');
+	std::snprintf(buffer.data(), buffer.size(), "%s", value.c_str());
+}
+
+void writeBuffer(std::array<char, 1024>& buffer, const std::string& value) {
+	std::fill(buffer.begin(), buffer.end(), '\0');
+	std::snprintf(buffer.data(), buffer.size(), "%s", value.c_str());
 }
 
 bool isDiffusionModelExtension(const std::string& extension) {
@@ -101,8 +137,11 @@ void ofApp::setup() {
 	request.height = 512;
 	request.steps = 20;
 	request.outputPath = getOutputPath();
+	request.seed = -1;
 	settings.modelPath = findModelPath();
 	settings.photoMakerPath = findPhotoMakerPath();
+	syncGuiFromRequest();
+	writeBuffer(modelPathBuffer, settings.modelPath);
 	loadPhotoMakerReferences();
 
 	status = ofxGgmlDiffusionUtils::describe(request);
@@ -143,6 +182,15 @@ void ofApp::runGeneration() {
 		return;
 	}
 
+	syncRequestFromGui();
+	const auto validation = ofxGgmlDiffusionUtils::validate(request);
+	if (!validation) {
+		status = "request invalid";
+		detail = validation.errors.empty() ? "Diffusion request failed validation" : validation.errors.front();
+		ofLogWarning("ofxGgmlDiffusionPromptExample") << detail;
+		return;
+	}
+
 	status = "starting";
 	ofLogNotice("ofxGgmlDiffusionPromptExample") << ofxGgmlDiffusionUtils::describe(request);
 	auto startResult = runner.start(settings, request);
@@ -178,6 +226,38 @@ void ofApp::applyResult(const ofxGgmlDiffusionResult& result) {
 	status = "complete";
 	detail = "Saved " + savedResult.outputPath + " in " + ofToString(savedResult.elapsedMs, 0) + " ms";
 	ofLogNotice("ofxGgmlDiffusionPromptExample") << detail;
+}
+
+void ofApp::syncRequestFromGui() {
+	request.prompt = ofxGgmlDiffusionUtils::cleanPrompt(promptBuffer.data());
+	request.negativePrompt = ofxGgmlDiffusionUtils::cleanPrompt(negativePromptBuffer.data());
+	request.width = clampToMultipleOf64(request.width);
+	request.height = clampToMultipleOf64(request.height);
+	request.steps = std::max(1, request.steps);
+	request.batchCount = std::clamp(request.batchCount, 1, 8);
+	request.scheduler = indexToScheduler(schedulerIndex);
+	request.seed = randomSeed ? -1 : std::max<std::int64_t>(1, seed);
+	if (autoCfgScale) {
+		request.cfgScale = std::numeric_limits<float>::infinity();
+	} else {
+		cfgScale = std::clamp(cfgScale, 0.0f, 30.0f);
+		request.cfgScale = cfgScale;
+	}
+	settings.modelPath = modelPathBuffer.data();
+	settings.threads = std::max(-1, settings.threads);
+	request.outputPath = getOutputPath();
+}
+
+void ofApp::syncGuiFromRequest() {
+	writeBuffer(promptBuffer, request.prompt);
+	writeBuffer(negativePromptBuffer, request.negativePrompt);
+	schedulerIndex = schedulerToIndex(request.scheduler);
+	randomSeed = request.seed < 0;
+	seed = request.seed < 0 ? 1 : static_cast<int>(request.seed);
+	autoCfgScale = ofxGgmlDiffusionUtils::isAutoValue(request.cfgScale);
+	if (!autoCfgScale) {
+		cfgScale = request.cfgScale;
+	}
 }
 
 std::string ofApp::findModelPath() const {
@@ -268,7 +348,7 @@ void ofApp::draw() {
 	ofBackground(18);
 	gui.begin();
 	ImGui::SetNextWindowPos(ImVec2(24.0f, 24.0f), ImGuiCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(620.0f, 360.0f), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(660.0f, std::min(760.0f, ofGetHeight() - 48.0f)), ImGuiCond_Once);
 	if (ImGui::Begin("ofxGgmlDiffusion Prompt Example")) {
 		if (runner.isRunning()) {
 			if (ImGui::Button("Cancel")) {
@@ -282,11 +362,10 @@ void ofApp::draw() {
 		ImGui::SameLine();
 		ImGui::TextWrapped("%s", status.c_str());
 
-		ImGui::Separator();
-		ImGui::TextUnformatted("Prompt");
-		ImGui::TextWrapped("%s", request.prompt.c_str());
-		ImGui::TextUnformatted("Model");
-		ImGui::TextWrapped("%s", settings.modelPath.empty() ? "(unset)" : settings.modelPath.c_str());
+		drawPromptControls();
+		drawSettingsControls();
+		drawModelControls();
+
 		ImGui::TextUnformatted("PhotoMaker");
 		ImGui::TextWrapped("%s", settings.photoMakerPath.empty() ? "(unset)" : settings.photoMakerPath.c_str());
 		ImGui::Separator();
@@ -301,4 +380,73 @@ void ofApp::draw() {
 		const float scale = std::min(maxSize / texture.getWidth(), maxSize / texture.getHeight());
 		texture.draw(672, 32, texture.getWidth() * scale, texture.getHeight() * scale);
 	}
+}
+
+void ofApp::drawPromptControls() {
+	ImGui::Separator();
+	ImGui::TextUnformatted("Prompt");
+	if (ImGui::InputTextMultiline("##Prompt", promptBuffer.data(), promptBuffer.size(), ImVec2(-1.0f, 96.0f))) {
+		syncRequestFromGui();
+		status = ofxGgmlDiffusionUtils::describe(request);
+	}
+	ImGui::TextUnformatted("Negative prompt");
+	if (ImGui::InputTextMultiline("##NegativePrompt", negativePromptBuffer.data(), negativePromptBuffer.size(), ImVec2(-1.0f, 72.0f))) {
+		syncRequestFromGui();
+	}
+}
+
+void ofApp::drawSettingsControls() {
+	ImGui::Separator();
+	bool changed = false;
+	changed |= ImGui::SliderInt("Width", &request.width, 64, 2048);
+	changed |= ImGui::SliderInt("Height", &request.height, 64, 2048);
+	changed |= ImGui::SliderInt("Steps", &request.steps, 1, 100);
+	changed |= ImGui::SliderInt("Batch", &request.batchCount, 1, 8);
+	if (ImGui::Combo("Scheduler", &schedulerIndex, schedulerNames, 5)) {
+		changed = true;
+	}
+	if (ImGui::Checkbox("Random seed", &randomSeed)) {
+		changed = true;
+	}
+	if (!randomSeed) {
+		changed |= ImGui::InputInt("Seed", &seed);
+	}
+	if (ImGui::Checkbox("Auto CFG", &autoCfgScale)) {
+		changed = true;
+	}
+	if (!autoCfgScale) {
+		changed |= ImGui::SliderFloat("CFG scale", &cfgScale, 0.0f, 30.0f, "%.2f");
+	}
+	changed |= ImGui::InputInt("Threads", &settings.threads);
+	changed |= ImGui::Checkbox("Memory map", &settings.mmap);
+	changed |= ImGui::Checkbox("VAE tiling", &settings.vaeTiling);
+	changed |= ImGui::Checkbox("Flash attention", &settings.flashAttention);
+	if (changed) {
+		syncRequestFromGui();
+		status = ofxGgmlDiffusionUtils::describe(request);
+	}
+}
+
+void ofApp::drawModelControls() {
+	ImGui::Separator();
+	ImGui::TextUnformatted("Model");
+	if (ImGui::InputText("##ModelPath", modelPathBuffer.data(), modelPathBuffer.size())) {
+		syncRequestFromGui();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Browse")) {
+		auto result = ofSystemLoadDialog("Load diffusion model", false);
+		if (result.bSuccess) {
+			settings.modelPath = result.getPath();
+			writeBuffer(modelPathBuffer, settings.modelPath);
+			syncRequestFromGui();
+		}
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Auto")) {
+		settings.modelPath = findModelPath();
+		writeBuffer(modelPathBuffer, settings.modelPath);
+		syncRequestFromGui();
+	}
+	ImGui::TextWrapped("%s", settings.modelPath.empty() ? "(unset)" : settings.modelPath.c_str());
 }

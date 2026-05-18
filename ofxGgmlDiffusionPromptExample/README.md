@@ -22,7 +22,9 @@ semicolon-separated list of image paths. Run `..\scripts\doctor-diffusion.bat`
 from the addon root if the example does not find the expected local assets.
 
 Press `R` to run one text-to-image request on a worker thread. Press `C` to
-cancel the pending result. Output is saved under `bin/data/outputs`.
+cancel the pending result. The ImGui panel lets you edit the prompt, negative
+prompt, image size, steps, batch count, scheduler, seed, CFG scale, model path,
+and runtime flags. Output is saved under `bin/data/outputs`.
 
 ```powershell
 ..\scripts\run-diffusion-example.bat -DryRun
